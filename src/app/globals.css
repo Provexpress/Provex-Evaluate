@@ -2114,5 +2114,113 @@
     grid-template-columns: 1fr;
     gap: var(--px-space-3);
   }
+
+  .px-policies-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--px-space-4) !important;
+  }
+}
+
+/* 🛡️ INSURANCE & GUARANTEES ANALYSIS (PÓLIZAS) */
+.px-policies-card {
+  background: var(--px-surface);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-xl);
+  padding: var(--px-space-5);
+  box-shadow: var(--px-shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.px-policies-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--px-space-6);
+  margin-bottom: var(--px-space-4);
+}
+
+.px-policy-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--px-space-2);
+}
+
+.px-policy-block__label {
+  font-size: var(--px-text-xs);
+  color: var(--px-muted);
+  font-weight: var(--px-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.px-policy-block__text {
+  margin: 0;
+  font-size: var(--px-text-sm);
+  color: var(--px-text-strong);
+  font-weight: var(--px-weight-medium);
+  line-height: 1.45;
+}
+
+.px-policy-block--estimate {
+  background: var(--px-surface-raised);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-lg);
+  padding: var(--px-space-4);
+}
+
+.px-policy-estimate-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--px-space-4);
+  font-size: var(--px-text-xs);
+}
+
+.px-policy-estimate-name {
+  color: var(--px-text-soft);
+  font-weight: var(--px-weight-medium);
+}
+
+.px-policy-estimate-value {
+  font-family: var(--px-font-data);
+  font-weight: var(--px-weight-bold);
+  color: var(--px-text-strong);
+}
+
+.px-policy-impact {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--px-space-3);
+  padding: var(--px-space-4);
+  background: rgba(106, 63, 160, 0.04);
+  border-radius: var(--px-radius-lg);
+  border-left: 4px solid var(--px-purple);
+  margin-top: var(--px-space-4);
+}
+
+.px-policy-impact__icon {
+  font-size: var(--px-text-base);
+  line-height: 1;
+}
+
+.px-policy-impact__content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.px-policy-impact__label {
+  font-size: var(--px-text-xs);
+  color: var(--px-purple);
+  font-weight: var(--px-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.px-policy-impact__text {
+  margin: 0;
+  font-size: var(--px-text-xs);
+  color: var(--px-text-soft);
+  line-height: 1.4;
 }
 

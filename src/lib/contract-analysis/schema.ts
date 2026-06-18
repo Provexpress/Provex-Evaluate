@@ -34,6 +34,15 @@ export interface ClauseImpact {
   risk_impact: string;
 }
 
+export interface PoliciesAnalysis {
+  required_policies: string;
+  are_values_specified: boolean;
+  value_details: string;
+  estimated_compliance_cost: string;
+  estimated_liability_cost: string;
+  business_impact: string;
+}
+
 export interface ContractAnalysis {
   data: {
     parties: Record<string, string> | string;
@@ -62,6 +71,7 @@ export interface ContractAnalysis {
     conditions: string[];
     minimum_value_required: string;
   };
+  policies_analysis: PoliciesAnalysis;
 }
 
 const DEFAULT_ANALYSIS: ContractAnalysis = {
@@ -102,6 +112,14 @@ const DEFAULT_ANALYSIS: ContractAnalysis = {
     type: "firmar_con_condiciones",
     conditions: ["Revisar detalladamente las cláusulas de pago y multas."],
     minimum_value_required: "no especificado"
+  },
+  policies_analysis: {
+    required_policies: "no definidas pero requeridas",
+    are_values_specified: false,
+    value_details: "Montos no especificados en el contrato",
+    estimated_compliance_cost: "No calculable",
+    estimated_liability_cost: "No calculable",
+    business_impact: "Las pólizas representan un costo adicional que debe incluirse en el costo total del proyecto, afectando el margen final."
   }
 };
 
@@ -116,6 +134,7 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
   const rawBillingObj = asRecord(root.billing_conditions || root.condiciones_facturacion || root.facturacion);
   const rawClauseImpacts = root.clause_impacts || root.impactos_clausulas || root.impacto_clausulas || [];
   const issuesArray = root.issues || root.problemas_clave || root.problemas;
+  const rawPoliciesObj = asRecord(root.policies_analysis || root.analisis_polizas || root.polizas_analisis);
 
   // Normalizar partes
   let normalizedParties: Record<string, string> | string = {};
@@ -221,6 +240,14 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
       type: normalizeRecommendationType(decisionObj.type || decisionObj.recomendacion || decisionObj.tipo),
       conditions,
       minimum_value_required: stringField(decisionObj.minimum_value_required || decisionObj.valor_minimo_requerido || decisionObj.valor_minimo, 200) || "no especificado"
+    },
+    policies_analysis: {
+      required_policies: stringField(rawPoliciesObj.required_policies || rawPoliciesObj.polizas_requeridas, 400) || "no definidas pero requeridas",
+      are_values_specified: Boolean(rawPoliciesObj.are_values_specified !== undefined ? rawPoliciesObj.are_values_specified : rawPoliciesObj.montos_especificados || false),
+      value_details: stringField(rawPoliciesObj.value_details || rawPoliciesObj.detalle_montos || rawPoliciesObj.detalles_valor, 500) || "Los montos de las pólizas no están especificados en el contrato",
+      estimated_compliance_cost: stringField(rawPoliciesObj.estimated_compliance_cost || rawPoliciesObj.costo_cumplimiento, 200) || "No calculable",
+      estimated_liability_cost: stringField(rawPoliciesObj.estimated_liability_cost || rawPoliciesObj.costo_responsabilidad, 200) || "No calculable",
+      business_impact: stringField(rawPoliciesObj.business_impact || rawPoliciesObj.impacto_negocio || rawPoliciesObj.impacto, 600) || "Las pólizas representan un costo adicional que debe incluirse en el costo total del proyecto, afectando el margen final."
     }
   };
 }

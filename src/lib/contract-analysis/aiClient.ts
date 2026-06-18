@@ -259,7 +259,18 @@ Describe de forma concisa cada uno de los siguientes factores para que la gerenc
 
 ---
 
-### BLOQUE 7 — RECOMENDACIÓN DE VIABILIDAD (decision)
+### BLOQUE 7 — ANÁLISIS DE PÓLIZAS Y GARANTÍAS (policies_analysis)
+Extrae los siguientes detalles de pólizas de seguros y garantías requeridas:
+- required_policies: Listado de pólizas de seguros y garantías contractuales requeridas (ej: "Cumplimiento, Responsabilidad Civil Extracontractual") o "no definidas pero requeridas" si el contrato exige constituir garantías pero no detalla cuáles.
+- are_values_specified: Booleano (true/false) indicando si se especifican los montos (porcentajes o valores específicos de cobertura de las pólizas en el contrato).
+- value_details: Detalle de los montos especificados para cada póliza (ej: "Cumplimiento al 10% del valor del contrato, RCE por 500 SMMLV") o "Los montos de las pólizas no están especificados en el contrato".
+- estimated_compliance_cost: Escribe "No calculable" (el backend lo calculará dinámicamente).
+- estimated_liability_cost: Escribe "No calculable" (el backend lo calculará dinámicamente).
+- business_impact: Explicación detallada de cómo estas pólizas impactan la operación y la rentabilidad del contratista (costo de primas, carga administrativa de constitución, renovaciones, etc.).
+
+---
+
+### BLOQUE 8 — RECOMENDACIÓN DE VIABILIDAD (decision)
 Si el contrato no tiene información financiera clara y tampoco hay Orden de Compra:
 - NO rechaces automáticamente.
 - En su lugar:
@@ -324,6 +335,14 @@ Devuelve únicamente un objeto JSON que coincida exactamente con la siguiente es
     "risk_tolerance": "tolerancia sugerida a multas",
     "cost_coverage": "viabilidad de costos y margen",
     "operational_requirements": "requisitos operativos"
+  },
+  "policies_analysis": {
+    "required_policies": "lista de pólizas o no definidas pero requeridas",
+    "are_values_specified": false,
+    "value_details": "detalle de montos o frase indicando que no están especificados",
+    "estimated_compliance_cost": "No calculable",
+    "estimated_liability_cost": "No calculable",
+    "business_impact": "explicación detallada de cómo afectan costos, rentabilidad y operación"
   },
   "decision": {
     "recommendation": "explicación del veredicto comercial en máximo 5 líneas",

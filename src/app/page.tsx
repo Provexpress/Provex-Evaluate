@@ -700,6 +700,55 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* 🛡️ INSURANCE & GUARANTEES ANALYSIS (PÓLIZAS) */}
+              <div className="px-policies-card px-anim-enter px-anim-enter--4">
+                <h3 className="px-card-heading">Análisis de Pólizas y Garantías</h3>
+                <div className="px-policies-grid">
+                  {/* Tipos de póliza */}
+                  <div className="px-policy-block">
+                    <span className="px-policy-block__label">🛡️ Tipos de Póliza Requeridos</span>
+                    <p className="px-policy-block__text">{analysis.policies_analysis.required_policies}</p>
+                  </div>
+
+                  {/* ¿Monto definido? */}
+                  <div className="px-policy-block">
+                    <span className="px-policy-block__label">💰 ¿Monto Definido en Contrato?</span>
+                    <div>
+                      <span className={`px-badge px-badge--${analysis.policies_analysis.are_values_specified ? "success" : "warning"}`} style={{ display: "inline-block", marginBottom: "var(--px-space-2)" }}>
+                        {analysis.policies_analysis.are_values_specified ? "SÍ" : "NO"}
+                      </span>
+                    </div>
+                    <p className="px-policy-block__text" style={{ fontSize: "var(--px-text-xs)", color: "var(--px-text-soft)", margin: 0 }}>
+                      {analysis.policies_analysis.value_details}
+                    </p>
+                  </div>
+
+                  {/* Estimación de costo */}
+                  <div className="px-policy-block px-policy-block--estimate">
+                    <span className="px-policy-block__label">📈 Costo Estimado (Asunciones del Sector)</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--px-space-1-5)", marginTop: "var(--px-space-2)" }}>
+                      <div className="px-policy-estimate-row">
+                        <span className="px-policy-estimate-name">Póliza de Cumplimiento (10%):</span>
+                        <span className="px-policy-estimate-value">{analysis.policies_analysis.estimated_compliance_cost}</span>
+                      </div>
+                      <div className="px-policy-estimate-row">
+                        <span className="px-policy-estimate-name">Póliza Responsabilidad Civil:</span>
+                        <span className="px-policy-estimate-value">{analysis.policies_analysis.estimated_liability_cost}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Impacto en negocio */}
+                <div className="px-policy-impact">
+                  <span className="px-policy-impact__icon">💡</span>
+                  <div className="px-policy-impact__content">
+                    <span className="px-policy-impact__label">Impacto en el Negocio</span>
+                    <p className="px-policy-impact__text">{analysis.policies_analysis.business_impact}</p>
+                  </div>
+                </div>
+              </div>
+
               {/* 🔬 6. CLAUSE ANALYSIS (COLLAPSIBLE ACORDEÓN) */}
               <div className="px-clauses-accordion-card px-anim-enter px-anim-enter--4">
                 <div className="px-clauses-accordion-card__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--px-space-4)", gap: "var(--px-space-4)", flexWrap: "wrap" }}>
