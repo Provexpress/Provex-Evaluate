@@ -282,6 +282,12 @@ Actúa como un asesor financiero y contractual experto. Evalúa la aplicabilidad
   * cost_impact: Cómo afecta al costo operativo general (primas a pagar, etc.).
   * profitability_impact: Cómo impacta directamente a la rentabilidad y al margen neto del contratista.
   * management_effort: Esfuerzo administrativo de consecución, firmas y renovación de las garantías.
+- policy_conclusion: Objeto con una conclusión final estructurada:
+  * summary: Breve texto explicativo/resumen. Ej: "El contrato no define el tipo de póliza, pero en la práctica se requerirán:".
+  * most_likely_required: Arreglo de cadenas indicando cuáles pólizas son de ALTA PROBABILIDAD (realistas) para ser exigidas por el cliente en la práctica (ej: ["Póliza de cumplimiento -> Alta probabilidad"]).
+  * likely_required: Arreglo de cadenas indicando cuáles son PROBABLES (ej: ["Póliza de responsabilidad civil -> Probable"]).
+  * optional: Arreglo de cadenas indicando cuáles son OPCIONALES (ej: ["Garantía de calidad -> Opcional"]).
+  * final_note: Debe ser exactamente: "Debe confirmarse con cliente antes de firma".
 
 ---
 
@@ -375,6 +381,13 @@ Devuelve únicamente un objeto JSON que coincida exactamente con la siguiente es
       "cost_impact": "impacto en costos operativos",
       "profitability_impact": "impacto en margen de ganancia",
       "management_effort": "esfuerzo de gestión y renovación"
+    },
+    "policy_conclusion": {
+      "summary": "Breve resumen explicativo (ej. El contrato no define el tipo de póliza, pero en la práctica se requerirán:)",
+      "most_likely_required": ["póliza 1 -> Alta probabilidad"],
+      "likely_required": ["póliza 2 -> Probable"],
+      "optional": ["póliza 3 -> Opcional"],
+      "final_note": "Debe confirmarse con cliente antes de firma"
     }
   },
   "decision": {

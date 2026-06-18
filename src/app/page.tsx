@@ -903,6 +903,52 @@ export default function Home() {
                           </table>
                         </div>
                       </div>
+
+                      {/* 🔴 POLICY CONCLUSION (CRITICAL) */}
+                      <div className="px-policies-conclusion-section px-anim-enter" style={{ marginTop: "var(--px-space-5)", background: "var(--px-surface-soft)", border: "1px solid var(--px-border)", borderRadius: "var(--px-radius-lg)", padding: "var(--px-space-4)" }}>
+                        <h4 className="px-policies-subsection-title" style={{ margin: 0, display: "flex", alignItems: "center", gap: "6px", color: "var(--px-red-bright)" }}>
+                          <span>🔴 CONCLUSIÓN DE PÓLIZAS (CRÍTICO)</span>
+                        </h4>
+                        <p style={{ margin: "var(--px-space-2) 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-soft)", fontWeight: "500" }}>
+                          👉 {analysis.policies_analysis.policy_conclusion?.summary || "Con base en las condiciones del contrato, en la práctica se estima que el cliente exigirá:"}
+                        </p>
+
+                        <div className="px-policies-conclusion-list" style={{ display: "flex", flexDirection: "column", gap: "var(--px-space-2.5)", margin: "var(--px-space-3) 0" }}>
+                          {analysis.policies_analysis.policy_conclusion?.most_likely_required?.length > 0 && (
+                            <div className="px-conclusion-item" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--px-text-xs)" }}>
+                              <span style={{ background: "rgba(232, 64, 64, 0.1)", color: "var(--px-red)", fontWeight: "bold", padding: "2px 8px", borderRadius: "10px", minWidth: "150px", textAlign: "center" }}>1. ALTA PROBABILIDAD</span>
+                              <div style={{ color: "var(--px-text-strong)", fontWeight: "600" }}>
+                                {analysis.policies_analysis.policy_conclusion.most_likely_required.join(", ")}
+                              </div>
+                            </div>
+                          )}
+
+                          {analysis.policies_analysis.policy_conclusion?.likely_required?.length > 0 && (
+                            <div className="px-conclusion-item" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--px-text-xs)" }}>
+                              <span style={{ background: "rgba(21, 101, 192, 0.1)", color: "var(--px-blue-bright)", fontWeight: "bold", padding: "2px 8px", borderRadius: "10px", minWidth: "150px", textAlign: "center" }}>2. PROBABLE</span>
+                              <div style={{ color: "var(--px-text-strong)", fontWeight: "600" }}>
+                                {analysis.policies_analysis.policy_conclusion.likely_required.join(", ")}
+                              </div>
+                            </div>
+                          )}
+
+                          {analysis.policies_analysis.policy_conclusion?.optional?.length > 0 && (
+                            <div className="px-conclusion-item" style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "var(--px-text-xs)" }}>
+                              <span style={{ background: "var(--px-gray-100)", color: "var(--px-muted)", fontWeight: "bold", padding: "2px 8px", borderRadius: "10px", minWidth: "150px", textAlign: "center" }}>3. OPCIONAL</span>
+                              <div style={{ color: "var(--px-text-normal)" }}>
+                                {analysis.policies_analysis.policy_conclusion.optional.join(", ")}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ borderTop: "1px dashed var(--px-border)", paddingTop: "var(--px-space-3)", marginTop: "var(--px-space-3)", display: "flex", alignItems: "center", gap: "6px", fontSize: "var(--px-text-xs)", color: "var(--px-red)", fontWeight: "bold" }}>
+                          <span>⚠️ Nota importante:</span>
+                          <span style={{ fontStyle: "italic", color: "var(--px-text-strong)" }}>
+                            "{analysis.policies_analysis.policy_conclusion?.final_note || "Debe confirmarse con cliente antes de firma"}"
+                          </span>
+                        </div>
+                      </div>
                     </>
                   );
                 })()}

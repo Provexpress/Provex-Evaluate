@@ -407,7 +407,14 @@ function cloneContractAnalysis(contract: ContractAnalysis): ContractAnalysis {
       is_policy_amount_defined: contract.policies_analysis.is_policy_amount_defined,
       required_policies_text: contract.policies_analysis.required_policies_text,
       policies_list: contract.policies_analysis.policies_list.map((p) => ({ ...p })),
-      business_impact: { ...contract.policies_analysis.business_impact }
+      business_impact: { ...contract.policies_analysis.business_impact },
+      policy_conclusion: {
+        summary: contract.policies_analysis.policy_conclusion?.summary || "",
+        most_likely_required: [...(contract.policies_analysis.policy_conclusion?.most_likely_required || [])],
+        likely_required: [...(contract.policies_analysis.policy_conclusion?.likely_required || [])],
+        optional: [...(contract.policies_analysis.policy_conclusion?.optional || [])],
+        final_note: contract.policies_analysis.policy_conclusion?.final_note || ""
+      }
     }
   };
 }

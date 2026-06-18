@@ -46,6 +46,14 @@ export interface PolicyDecision {
   why_applies: string;
 }
 
+export interface PolicyConclusion {
+  summary: string;
+  most_likely_required: string[];
+  likely_required: string[];
+  optional: string[];
+  final_note: string;
+}
+
 export interface PoliciesAnalysis {
   does_apply: boolean;
   required_status: string;
@@ -59,6 +67,7 @@ export interface PoliciesAnalysis {
     profitability_impact: string;
     management_effort: string;
   };
+  policy_conclusion: PolicyConclusion;
 }
 
 export interface ContractAnalysis {
@@ -188,6 +197,13 @@ const DEFAULT_ANALYSIS: ContractAnalysis = {
       cost_impact: "Las pólizas representan un costo adicional que debe incluirse en el presupuesto general.",
       profitability_impact: "Reduce directamente el margen de ganancia neta del proyecto.",
       management_effort: "Requiere gestiones de cotización, expedición y seguimiento administrativo de renovación."
+    },
+    policy_conclusion: {
+      summary: "El contrato no define el tipo de póliza, pero en la práctica se requerirán:",
+      most_likely_required: ["Póliza de Cumplimiento"],
+      likely_required: ["Póliza de Responsabilidad Civil Extracontractual"],
+      optional: ["Garantía de Calidad y Servicio (Performance)", "Garantía de Buen Manejo de Anticipo"],
+      final_note: "Debe confirmarse con cliente antes de firma"
     }
   }
 };
@@ -398,6 +414,20 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
         management_effort: stringField(rawImpact.management_effort || rawImpact.esfuerzo_gestion || rawImpact.gestion || "", 500) || DEFAULT_ANALYSIS.policies_analysis.business_impact.management_effort
       };
 
+      const rawConclusion = asRecord(rawPoliciesObj.policy_conclusion || rawPoliciesObj.conclusion_polizas || rawPoliciesObj.conclusion);
+      const extractStringArray = (val: unknown, fb: string[]): string[] => {
+        if (!Array.isArray(val)) return fb;
+        return val.map(v => stringField(v, 200)).filter(Boolean);
+      };
+      
+      const policy_conclusion: PolicyConclusion = {
+        summary: stringField(rawConclusion.summary || rawConclusion.resumen || "", 400) || DEFAULT_ANALYSIS.policies_analysis.policy_conclusion.summary,
+        most_likely_required: extractStringArray(rawConclusion.most_likely_required || rawConclusion.muy_probable || rawConclusion.alta_probabilidad, DEFAULT_ANALYSIS.policies_analysis.policy_conclusion.most_likely_required),
+        likely_required: extractStringArray(rawConclusion.likely_required || rawConclusion.probable || rawConclusion.probabilidad_media, DEFAULT_ANALYSIS.policies_analysis.policy_conclusion.likely_required),
+        optional: extractStringArray(rawConclusion.optional || rawConclusion.opcional || rawConclusion.baja_probabilidad, DEFAULT_ANALYSIS.policies_analysis.policy_conclusion.optional),
+        final_note: stringField(rawConclusion.final_note || rawConclusion.nota_final || "", 200) || DEFAULT_ANALYSIS.policies_analysis.policy_conclusion.final_note
+      };
+
       return {
         does_apply,
         required_status,
@@ -406,7 +436,8 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
         is_policy_amount_defined,
         required_policies_text,
         policies_list,
-        business_impact
+        business_impact,
+        policy_conclusion
       };
     })()
   };
