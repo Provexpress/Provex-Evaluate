@@ -306,7 +306,13 @@ export default function Home() {
       {/* Barra superior del sistema */}
       <header className="px-topbar">
         <div className="px-brand">
-          <div className="px-logo px-logo--sm">PX</div>
+          <div className="px-logo px-logo--sm" style={{ overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+            <img 
+              src="/provex-logo.jpeg" 
+              alt="Provex Logo" 
+              style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+            />
+          </div>
           <div className="px-brand__meta">
             <p className="px-eyebrow">Evaluación Contractual</p>
             <h1 className="px-brand__title">ProvexEvaluate</h1>
