@@ -29,34 +29,44 @@ export function enforceBusinessRules(
 ): ContractAnalysis {
   const next = cloneContractAnalysis(contract);
   const issues = new Set(next.issues);
+  const conditions = new Set(next.decision.conditions);
 
   // Check missing value
   const valMissing = isValueMissing(next.data.value);
   if (valMissing) {
-    next.analysis.risk = higherRisk(next.analysis.risk, "alto");
-    next.analysis.cash_flow = weakerCashFlow(next.analysis.cash_flow, "debil");
+    next.analysis.risk.val = higherRisk(next.analysis.risk.val, "alto");
+    next.analysis.risk.reason = "Valor del contrato no especificado en el acuerdo principal o adjuntos; riesgo de ingresos inciertos.";
+    next.analysis.cash_flow.val = weakerCashFlow(next.analysis.cash_flow.val, "debil");
+    next.analysis.cash_flow.reason = "Imposible proyectar cobros al no existir un valor contractual pactado.";
     issues.add("El valor del contrato no está definido; no se pueden validar los ingresos ni el margen.");
+    conditions.add("Establecer un valor comercial explícito para el contrato en una adenda.");
   }
 
   // Payment approval logic
   if (paymentDependsOnApproval(next.data.payment_terms)) {
-    next.analysis.cash_flow = weakerCashFlow(next.analysis.cash_flow, "debil");
+    next.analysis.cash_flow.val = weakerCashFlow(next.analysis.cash_flow.val, "debil");
+    next.analysis.cash_flow.reason = "Los plazos de facturación dependen de aprobaciones externas o hitos de interventoría.";
     issues.add("El pago depende de aprobación o aceptación; el flujo de caja es más débil.");
+    conditions.add("Negociar plazos de pago fijos y automáticos sin depender de la firma de un supervisor.");
   }
 
   // Costs on contractor logic
   if (costsFallOnContractor(next)) {
-    next.analysis.profitability = downgradeProfitability(next.analysis.profitability);
+    next.analysis.profitability.val = downgradeProfitability(next.analysis.profitability.val);
+    next.analysis.profitability.reason = "El proveedor debe asumir la totalidad de costos operativos y pólizas exigidas.";
     issues.add("El contrato traslada costos o gastos al contratista.");
+    conditions.add("Distribuir o cofinanciar costos de pólizas y garantías exigidas en el acuerdo.");
   }
 
   // Unilateral termination logic
   if (hasUnilateralTermination(next.data.termination)) {
-    next.analysis.risk = higherRisk(next.analysis.risk, "alto");
+    next.analysis.risk.val = higherRisk(next.analysis.risk.val, "alto");
+    next.analysis.risk.reason = "Cláusulas permiten la rescisión del acuerdo sin justa causa e indemnización a favor del cliente.";
     issues.add("La terminación parece unilateral; el riesgo de continuidad para el contratista es alto.");
+    conditions.add("Incluir preaviso recíproco de mínimo 30 días y compensaciones por terminación anticipada.");
   }
 
-  // Reintroduce financial calculations
+  // Financial calculations and viability parameters check
   if (businessInputs && businessInputs.estimated_cost !== undefined && businessInputs.expected_margin !== undefined) {
     const cost = businessInputs.estimated_cost;
     const margin = businessInputs.expected_margin;
@@ -66,20 +76,21 @@ export function enforceBusinessRules(
     
     if (valMissing) {
       next.decision.type = "firmar_con_condiciones";
-      if (!next.decision.conditions || next.decision.conditions === "no encontrado") {
-        next.decision.conditions = `Definir un valor de contrato de al menos ${minVal.toLocaleString("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USD para cubrir costos y margen objetivo.`;
-      }
-      issues.add("Valor del contrato no encontrado; se requiere negociar un valor mínimo de " + minVal.toLocaleString("es-CO") + " USD.");
+      conditions.add(`Negociar un valor comercial de al menos ${minVal.toLocaleString("es-CO")} USD para cubrir costos y el margen objetivo.`);
+      issues.add(`Valor del contrato no definido; se requiere negociar un valor mínimo de ${minVal.toLocaleString("es-CO")} USD.`);
     } else {
       const parsedVal = parseNumberLike(next.data.value);
       if (parsedVal !== null) {
         if (parsedVal < minVal) {
-          next.analysis.profitability = "baja";
-          next.decision.type = "no_firmar";
+          next.analysis.profitability.val = "baja";
+          next.analysis.profitability.reason = `El valor contractual (${parsedVal.toLocaleString("es-CO")} USD) no cubre los costos estimados (${cost.toLocaleString("es-CO")} USD) y el margen objetivo (${margin}%).`;
+          next.decision.type = "no_recomendado_sin_validacion";
+          conditions.add(`El valor del contrato debe incrementarse a mínimo ${minVal.toLocaleString("es-CO")} USD.`);
+          conditions.add("Establecer garantías de pago y plazos fijos.");
+          conditions.add("Revisar penalidades por mora para mitigar riesgo de pérdidas.");
           issues.add(`El valor extraído (${parsedVal.toLocaleString("es-CO")} USD) es inferior al valor mínimo requerido (${minVal.toLocaleString("es-CO")} USD).`);
         }
       } else {
-        // Can't parse numeric value
         next.decision.type = "firmar_con_condiciones";
         issues.add("No se pudo comprobar numéricamente el valor del contrato contra el valor mínimo requerido.");
       }
@@ -87,9 +98,10 @@ export function enforceBusinessRules(
   }
 
   next.issues = Array.from(issues).filter(Boolean).slice(0, 5); // Limit to max 5 issues as per BLOQUE 3 rules
+  next.decision.conditions = Array.from(conditions).filter(Boolean);
   
-  // Resolve recommendation decision if not already overridden (e.g. no_firmar or firmar_con_condiciones from above)
-  if (next.decision.type !== "no_firmar" && next.decision.type !== "firmar_con_condiciones") {
+  // Resolve recommendation decision if not already overridden (e.g. no_recomendado_sin_validacion or firmar_con_condiciones from above)
+  if (next.decision.type !== "no_recomendado_sin_validacion" && next.decision.type !== "firmar_con_condiciones") {
     next.decision.type = resolveRecommendation(next);
   }
   
@@ -194,10 +206,12 @@ function downgradeProfitability(current: Profitability): Profitability {
 }
 
 function resolveRecommendation(contract: ContractAnalysis): RecommendationType {
-  const { profitability, risk, cash_flow } = contract.analysis;
+  const profitability = contract.analysis.profitability.val;
+  const risk = contract.analysis.risk.val;
+  const cash_flow = contract.analysis.cash_flow.val;
 
   if (risk === "alto" && (profitability === "baja" || cash_flow === "debil")) {
-    return "no_firmar";
+    return "no_recomendado_sin_validacion";
   }
 
   if (risk === "alto" || profitability === "baja" || cash_flow === "debil") {
@@ -228,18 +242,20 @@ function cloneContractAnalysis(contract: ContractAnalysis): ContractAnalysis {
       payment_terms: contract.data.payment_terms,
       policies: contract.data.policies,
       penalties: contract.data.penalties,
-      termination: contract.data.termination
+      termination: contract.data.termination,
+      financials_from_po: contract.data.financials_from_po
     },
     analysis: {
-      profitability: contract.analysis.profitability,
-      risk: contract.analysis.risk,
-      cash_flow: contract.analysis.cash_flow
+      profitability: { ...contract.analysis.profitability },
+      risk: { ...contract.analysis.risk },
+      cash_flow: { ...contract.analysis.cash_flow }
     },
     issues: [...contract.issues],
+    factors_to_sign: { ...contract.factors_to_sign },
     decision: {
       recommendation: contract.decision.recommendation,
       type: contract.decision.type,
-      conditions: contract.decision.conditions,
+      conditions: [...contract.decision.conditions],
       minimum_value_required: contract.decision.minimum_value_required
     }
   };

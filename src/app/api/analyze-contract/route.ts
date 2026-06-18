@@ -32,12 +32,27 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file");
+    const purchaseOrderFile = formData.get("purchase_order");
 
     if (!isFileLike(file)) {
       throw new HttpError(400, "missing_file", "Upload a PDF file in the 'file' field.");
     }
 
     validatePdfFile(file);
+
+    let preparedPoText;
+    if (purchaseOrderFile && isFileLike(purchaseOrderFile)) {
+      validatePdfFile(purchaseOrderFile);
+      const poBuffer = Buffer.from(await purchaseOrderFile.arrayBuffer());
+      const poRawText = await extractPdfText(poBuffer);
+      const poCleanText = cleanContractText(poRawText);
+      if (poCleanText) {
+        preparedPoText = prepareContractTextForAi(
+          poCleanText,
+          envNumber("CONTRACT_TEXT_MAX_CHARS", 65000)
+        );
+      }
+    }
 
     const businessInputs = readBusinessInputs(formData);
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -52,7 +67,7 @@ export async function POST(request: NextRequest) {
       cleanText,
       envNumber("CONTRACT_TEXT_MAX_CHARS", 65000)
     );
-    const aiAnalysis = await analyzeContractWithAi({ preparedText, businessInputs });
+    const aiAnalysis = await analyzeContractWithAi({ preparedText, preparedPoText, businessInputs });
     const finalAnalysis = enforceBusinessRules(aiAnalysis, businessInputs);
 
     return NextResponse.json(finalAnalysis, { status: 200 });

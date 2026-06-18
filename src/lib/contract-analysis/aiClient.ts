@@ -22,9 +22,11 @@ export class AiConfigurationError extends Error {
 
 export async function analyzeContractWithAi({
   preparedText,
+  preparedPoText,
   businessInputs
 }: {
   preparedText: PreparedContractText;
+  preparedPoText?: PreparedContractText;
   businessInputs: BusinessInputs;
 }): Promise<ContractAnalysis> {
   const config = getAiProviderConfig();
@@ -35,7 +37,7 @@ export async function analyzeContractWithAi({
     },
     {
       role: "user",
-      content: buildUserPrompt(preparedText, businessInputs)
+      content: buildUserPrompt(preparedText, preparedPoText, businessInputs)
     }
   ];
 
@@ -128,6 +130,7 @@ function getAiProviderConfig(): AiProviderConfig {
 
 function buildUserPrompt(
   preparedText: PreparedContractText,
+  preparedPoText: PreparedContractText | undefined,
   businessInputs: BusinessInputs
 ): string {
   const estimatedCost =
@@ -138,6 +141,16 @@ function buildUserPrompt(
     businessInputs.expected_margin === undefined
       ? "no provisto"
       : String(businessInputs.expected_margin);
+
+  const poSection = preparedPoText
+    ? `
+---
+
+## DOCUMENTO 2: ORDEN DE COMPRA (PO) ASOCIADA
+Usa los siguientes datos de la Orden de Compra para complementar o extraer la información financiera (valor, moneda, forma de pago) si no están claros o no se definen en el contrato principal:
+${preparedPoText.text}
+`
+    : "";
 
   return `
 Eres un analista experto en contratos y al mismo tiempo el Director Comercial de una empresa proveedora (contratista).
@@ -160,12 +173,12 @@ Si esta información está disponible (no es "no provisto"), úsala para calcula
 
 ## ANÁLISIS REQUERIDO
 
-Responde en 4 bloques:
+Responde en 4 bloques principales dentro del JSON:
 
 ---
 
 ### BLOQUE 1 — DATOS DEL CONTRATO
-Extrae de forma estructurada los siguientes campos. Si no está explícito en el texto del contrato, indica estrictamente el valor literal "no encontrado". No inventes información:
+Extrae de forma estructurada los siguientes campos. Si no está explícito en el texto del contrato principal ni de la Orden de Compra adjunta, indica estrictamente el valor literal "no encontrado". No inventes información:
 - partes (parties): objeto clave-valor o texto que liste las partes contratantes y sus roles (ej: {"contratante": "ACME SAS", "contratista": "PROVEXPRESS SAS"})
 - valor (value): valor monetario del contrato (ej: "150.000.000" o "no encontrado")
 - moneda (currency): moneda del contrato (ej: "COP", "USD" o "no encontrado")
@@ -176,58 +189,48 @@ Extrae de forma estructurada los siguientes campos. Si no está explícito en el
 - penalidades (penalties): multas y penalidades aplicables (si no está, "no encontrado")
 - terminacion (termination): cláusulas de terminación del contrato (si no está, "no encontrado")
 
+*IMPORTANTE*: Si el contrato principal no define el valor o los términos de pago, pero sí se adjunta una Orden de Compra y extraes dichos datos de la Orden de Compra, debes establecer "financials_from_po": true en el JSON. De lo contrario, indica false.
+
 ---
 
 ### BLOQUE 2 — ANÁLISIS DE NEGOCIO (modo proveedor)
-Evalúa y califica con una de las opciones sugeridas:
-- rentabilidad (profitability): "alta" | "media" | "baja"
-- riesgo (risk): "alto" | "medio" | "bajo"
-- flujo_caja (cash_flow): "fuerte" | "medio" | "debil"
-
-Criterios de evaluación:
-- si el valor no está definido → bajar certeza de rentabilidad (marcar como rentabilidad "baja")
-- si todos los costos recaen en el proveedor → bajar rentabilidad (marcar como rentabilidad "baja")
-- si pagos dependen de aprobación → debilitar flujo de caja (marcar como flujo de caja "debil")
-- si hay terminación unilateral → aumentar riesgo (marcar como riesgo "alto")
-- si hay penalidades o deducciones → aumentar riesgo (marcar como riesgo "alto")
-
----
-
-### BLOQUE 3 — PROBLEMAS CLAVE
-Lista máximo 5 en un arreglo de cadenas:
-- riesgos críticos
-- condiciones desfavorables
-- puntos que puedan afectar rentabilidad o flujo de caja
+Evalúa y califica con una de las opciones sugeridas, y provee una breve explicación ("reason" de máximo 2 líneas) de por qué se asignó esa calificación:
+- rentabilidad (profitability):
+  * val: "alta" | "media" | "baja"
+  * reason: explicación del porqué.
+- riesgo (risk):
+  * val: "alto" | "medio" | "bajo"
+  * reason: explicación del porqué.
+- flujo_caja (cash_flow):
+  * val: "fuerte" | "medio" | "debil"
+  * reason: explicación del porqué (ej: "Pagos condicionados a la aprobación de facturas los jueves").
 
 ---
 
-### BLOQUE 4 — RECOMENDACIÓN DE VIABILIDAD
-IMPORTANTE:
-SI el contrato NO tiene información financiera clara (valor, moneda, etc):
+### BLOQUE 3 — PROBLEMAS CLAVE (issues)
+Lista máximo 5 alertas comerciales o riesgos críticos en un arreglo de cadenas.
+
+---
+
+### BLOQUE 4 — FACTORES CLAVE PARA FIRMAR (factors_to_sign)
+Describe de forma concisa cada uno de los siguientes factores para que la gerencia evalúe las condiciones de firma:
+- minimum_value_required: descripción del valor mínimo requerido para que el negocio sea viable y cubra el margen objetivo.
+- payment_conditions: términos o plazos de pago ideales recomendados.
+- risk_tolerance: tolerancia comercial sugerida frente a las penalidades.
+- cost_coverage: viabilidad de la cobertura de costos.
+- operational_requirements: requisitos del personal o entregables mínimos requeridos.
+
+---
+
+### BLOQUE 5 — RECOMENDACIÓN DE VIABILIDAD (decision)
+Si el contrato no tiene información financiera clara y tampoco hay Orden de Compra:
 - NO rechaces automáticamente.
 - En su lugar:
-  - marcar la recomendación (type) como "firmar_con_condiciones"
-  - usa costo_estimado y margen_objetivo si están disponibles
-  - define condiciones para que sea viable
+  - marcar la recomendación (type) como "firmar_con_condiciones".
+  - define las condiciones necesarias en el arreglo "conditions" para que sea viable (ej: ["Garantizar plazos de pago", "Verificar valor del contrato"]).
+- type de recomendación: "firmar" | "firmar_con_condiciones" | "no_recomendado_sin_validacion"
 
----
-
-## LÓGICA DE DECISIÓN
-Si hay datos suficientes:
-- tipo de recomendación (type): "firmar" | "firmar_con_condiciones" | "no_firmar"
-Si NO hay datos financieros:
-- SIEMPRE usar tipo de recomendación (type): "firmar_con_condiciones"
-y definir:
-- valor mínimo requerido (minimum_value_required)
-- condiciones de pago necesarias (conditions)
-
----
-
-## CÁLCULO (si hay datos del usuario)
-Si se proporciona costo_estimado y margen_objetivo (no son "no provisto"):
-Entonces calcula el valor mínimo de la siguiente forma:
-valor_minimo = costo_estimado * (1 + margen_objetivo/100)
-Usa esto en el campo "minimum_value_required" indicando: "Este contrato solo es viable si el valor es mayor o igual a X USD" (donde X es el valor calculado).
+${poSection}
 
 ---
 
@@ -243,18 +246,38 @@ Devuelve únicamente un objeto JSON que coincida exactamente con la siguiente es
     "payment_terms": "",
     "policies": "",
     "penalties": "",
-    "termination": ""
+    "termination": "",
+    "financials_from_po": false
   },
   "analysis": {
-    "profitability": "alta | media | baja",
-    "risk": "alto | medio | bajo",
-    "cash_flow": "fuerte | medio | debil"
+    "profitability": {
+      "val": "alta | media | baja",
+      "reason": "explicación de máximo 2 líneas"
+    },
+    "risk": {
+      "val": "alto | medio | bajo",
+      "reason": "explicación de máximo 2 líneas"
+    },
+    "cash_flow": {
+      "val": "fuerte | medio | debil",
+      "reason": "explicación de máximo 2 líneas"
+    }
   },
   "issues": [],
+  "factors_to_sign": {
+    "minimum_value_required": "descripción de valor mínimo",
+    "payment_conditions": "descripción de plazos de pago ideales",
+    "risk_tolerance": "tolerancia sugerida a multas",
+    "cost_coverage": "viabilidad de costos y margen",
+    "operational_requirements": "requisitos operativos"
+  },
   "decision": {
-    "recommendation": "explicación de la decisión en lenguaje simple y directo de máximo 5 líneas",
-    "type": "firmar | firmar_con_condiciones | no_firmar",
-    "conditions": "condiciones necesarias si aplica, de lo contrario vacío",
+    "recommendation": "explicación del veredicto comercial en máximo 5 líneas",
+    "type": "firmar | firmar_con_condiciones | no_recomendado_sin_validacion",
+    "conditions": [
+      "condición 1",
+      "condición 2"
+    ],
     "minimum_value_required": "valor calculado o vacío si no hay parámetros"
   }
 }
@@ -265,8 +288,7 @@ Devuelve únicamente un objeto JSON que coincida exactamente con la siguiente es
 - Sé directo y claro.
 - NO uses lenguaje jurídico complejo.
 - Prioriza dinero, riesgo y flujo de caja.
-- Piensa como negocio, no como abogado.
-- Siempre devuelve JSON válido.
+- Devuelve siempre JSON válido.
 - No expliques fuera del JSON.
 
 Texto del contrato original:
