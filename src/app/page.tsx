@@ -88,31 +88,61 @@ export default function Home() {
     }
   };
 
+  const processFiles = (files: File[]) => {
+    const pdfs = files.filter(
+      (f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
+    );
+
+    if (pdfs.length === 0) {
+      setError("Únicamente se soportan archivos PDF para la evaluación.");
+      return;
+    }
+
+    setError(null);
+
+    if (pdfs.length >= 2) {
+      // Intentar clasificar cuál es el contrato y cuál es la orden de compra (PO)
+      const poKeywords = ["orden", "compra", "po", "odc", "pedido"];
+      const isPo = (f: File) => poKeywords.some((kw) => f.name.toLowerCase().includes(kw));
+
+      const firstIsPo = isPo(pdfs[0]);
+      const secondIsPo = isPo(pdfs[1]);
+
+      if (firstIsPo && !secondIsPo) {
+        setPurchaseOrderFile(pdfs[0]);
+        setFile(pdfs[1]);
+      } else if (!firstIsPo && secondIsPo) {
+        setFile(pdfs[0]);
+        setPurchaseOrderFile(pdfs[1]);
+      } else {
+        // Por descarte, el archivo más grande suele ser el contrato principal
+        if (pdfs[0].size >= pdfs[1].size) {
+          setFile(pdfs[0]);
+          setPurchaseOrderFile(pdfs[1]);
+        } else {
+          setFile(pdfs[1]);
+          setPurchaseOrderFile(pdfs[0]);
+        }
+      }
+    } else {
+      // Un solo archivo
+      setFile(pdfs[0]);
+    }
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === "application/pdf" || droppedFile.name.endsWith(".pdf")) {
-        setFile(droppedFile);
-        setError(null);
-      } else {
-        setError("Únicamente se soportan archivos PDF para la evaluación contractual.");
-      }
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(Array.from(e.dataTransfer.files));
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type === "application/pdf" || selectedFile.name.endsWith(".pdf")) {
-        setFile(selectedFile);
-        setError(null);
-      } else {
-        setError("Únicamente se soportan archivos PDF para la evaluación contractual.");
-      }
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(Array.from(e.target.files));
     }
   };
 
@@ -332,9 +362,9 @@ export default function Home() {
                       <line x1="12" y1="3" x2="12" y2="15" />
                     </svg>
                   </div>
-                  <p className="px-upload-title">Subir Contrato PDF</p>
-                  <p className="px-upload-subtitle">Arrastra o haz clic aquí</p>
-                  <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFileChange} />
+                  <p className="px-upload-title">Subir Documentos PDF</p>
+                  <p className="px-upload-subtitle">Arrastra o haz clic (puedes subir contrato y orden de compra juntos)</p>
+                  <input ref={fileInputRef} type="file" accept=".pdf" multiple style={{ display: "none" }} onChange={handleFileChange} />
                 </div>
               ) : (
                 <div className="px-file-card">
@@ -400,47 +430,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ── DIVIDER ── */}
-          <div className="px-sidebar-divider"></div>
 
-          {/* ── SECCIÓN 2: PARÁMETROS FINANCIEROS ── */}
-          <div className="px-sidebar-section">
-            <div className="px-sidebar-section-header">
-              <span className="px-sidebar-step px-sidebar-step--purple">02</span>
-              <div>
-                <p className="px-sidebar-label">Parámetros del Negocio</p>
-                <h2 className="px-sidebar-title">Viabilidad Financiera</h2>
-              </div>
-            </div>
-
-            <div className="px-field">
-              <label className="px-label">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display:"inline", marginRight:"5px", verticalAlign:"middle" }}>
-                  <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-                Costo Estimado (USD)
-              </label>
-              <div className="px-input-prefixed-wrapper">
-                <span className="px-input-prefix">$</span>
-                <input type="text" className="px-input" placeholder="Ej. 50000" value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} disabled={isLoading} />
-              </div>
-              <p className="px-help">Costo proyectado para ejecutar el proyecto</p>
-            </div>
-
-            <div className="px-field">
-              <label className="px-label">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display:"inline", marginRight:"5px", verticalAlign:"middle" }}>
-                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
-                </svg>
-                Margen Objetivo (%)
-              </label>
-              <div className="px-input-prefixed-wrapper">
-                <span className="px-input-prefix" style={{ fontFamily:"var(--px-font-data)", fontSize:"0.75rem" }}>%</span>
-                <input type="text" className="px-input" placeholder="Ej. 25" value={expectedMargin} onChange={(e) => setExpectedMargin(e.target.value)} disabled={isLoading} />
-              </div>
-              <p className="px-help">Margen comercial requerido para firma</p>
-            </div>
-          </div>
 
           {/* ── DIVIDER + CTA ── */}
           {file && !analysis && (
@@ -850,6 +840,21 @@ export default function Home() {
                       <tr>
                         <td><strong>Condiciones de Radicación</strong></td>
                         <td>{analysis.data.payment_terms}</td>
+                      </tr>
+                      {/* Pólizas */}
+                      <tr>
+                        <td><strong>Pólizas y Garantías</strong></td>
+                        <td>{analysis.data.policies}</td>
+                      </tr>
+                      {/* Penalidades */}
+                      <tr>
+                        <td><strong>Multas y Penalidades</strong></td>
+                        <td>{analysis.data.penalties}</td>
+                      </tr>
+                      {/* Terminación */}
+                      <tr>
+                        <td><strong>Cláusulas de Terminación</strong></td>
+                        <td>{analysis.data.termination}</td>
                       </tr>
                     </tbody>
                   </table>

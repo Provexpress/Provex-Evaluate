@@ -185,7 +185,7 @@ Extrae de forma estructurada los siguientes campos. Si no está explícito en el
 - TRM (trm): TRM si aplica (ej: "4.200" o "no encontrado")
 - duración (duration): duración del contrato (ej: "12 meses" o "no encontrado")
 - forma_pago (payment_terms): plazos y condiciones de pago (ej: "60 días" o "no encontrado")
-- polizas (policies): pólizas y garantías requeridas (si no está, "no encontrado")
+- polizas (policies): Detalle minucioso y desagregado de todas las pólizas de seguros y garantías contractuales requeridas, especificando tipos de amparo (ej. cumplimiento, calidad, salarios), porcentajes o valores de cobertura, vigencias y condiciones de aprobación (si no está, "no encontrado")
 - penalidades (penalties): multas y penalidades aplicables (si no está, "no encontrado")
 - terminacion (termination): cláusulas de terminación del contrato (si no está, "no encontrado")
 
