@@ -271,7 +271,7 @@ Actúa como un asesor financiero y contractual experto. Evalúa la aplicabilidad
   Cada objeto debe contener:
   * name: Nombre de la póliza.
   * applies: Booleano (true/false). Indica si aplica o se sugiere para este contrato en específico.
-  * is_explicitly_required_by_contract: Booleano (true/false). Indica si esta póliza en particular es exigida explícitamente en el texto del contrato.
+  * is_explicitly_required_by_contract: Booleano (true/false). Indica si esta póliza en particular es exigida explícitamente y por su nombre o tipo en el texto del contrato. Si el contrato exige pólizas de forma genérica (ej. "el contratista constituirá las pólizas necesarias") pero no nombra esta póliza en particular por su tipo/nombre, este campo DEBE ser false. Nunca lo marques como true si solo se infiere por análisis o buenas prácticas.
   * are_values_specified: Booleano (true/false) indicando si el contrato define el monto de cobertura de esta póliza específica.
   * value_details: Detalle de montos si are_values_specified es true, o "Montos no especificados en el contrato" si es false.
   * applies_when: Regla general de cuándo aplica esta póliza (ej. "Se aplica si existen obligaciones contractuales y ejecución de servicios").

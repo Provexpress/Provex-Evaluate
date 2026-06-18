@@ -21,6 +21,7 @@
   --px-amber-bright:  #F0A020;
   --px-red:           #C62828;
   --px-red-bright:    #E84040;
+  --px-red-light:     #FFEBEE;
 
   --px-bg:             #F3F6FD;
   --px-surface:        #FFFFFF;
@@ -879,15 +880,18 @@
 
 /* ─── FILE CARD ─────────────────────────────────────────────── */
 .px-file-card {
+  width: 100%;
+  max-width: 100%;
   min-height: 78px;
   border: 1px solid var(--px-border);
   background: var(--px-surface);
   border-radius: var(--px-radius-md);
-  padding: var(--px-space-4);
+  padding: var(--px-space-4) 52px var(--px-space-4) var(--px-space-4);
   display: flex;
   align-items: center;
   gap: var(--px-space-3);
   position: relative;
+  overflow: hidden;
   box-shadow: none;
   animation: px-fade-in 0.35s ease both;
   transition:
@@ -907,6 +911,7 @@
 }
 
 .px-file-icon {
+  flex: 0 0 38px;
   width: 38px;
   height: 38px;
   border-radius: var(--px-radius-sm);
@@ -933,9 +938,15 @@
 .px-file-info {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .px-file-name {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   font-size: var(--px-text-md);
   font-weight: var(--px-weight-bold);
   color: var(--px-text);
@@ -1602,7 +1613,7 @@
 }
 
 /* ─── RESPONSIVE ────────────────────────────────────────────── */
-@media (max-width: 1180px) {
+@media (max-width: 960px) {
   .px-workbench { grid-template-columns: 1fr; }
 }
 
@@ -2443,4 +2454,36 @@
     grid-template-columns: 1fr;
     gap: var(--px-space-2.5);
   }
+}
+
+/* ─── SPLIT POLICIES TABLES ─────────────────────────────────── */
+.px-policies-table-wrapper--required {
+  border: 1.5px solid var(--px-red-bright);
+  box-shadow: 0 4px 12px rgba(232, 64, 64, 0.06);
+}
+
+.px-policies-table-wrapper--required th {
+  background: var(--px-red-bright) !important;
+  color: var(--px-surface) !important;
+}
+
+.px-policies-table-wrapper--suggested {
+  border: 1px solid var(--px-border);
+}
+
+.px-policies-table-wrapper--suggested th {
+  background: var(--px-surface-tint) !important;
+  color: var(--px-navy) !important;
+}
+
+.px-policies-table--required tbody tr {
+  background: rgba(232, 64, 64, 0.015);
+}
+
+.px-policies-table--required tbody tr:hover {
+  background: rgba(232, 64, 64, 0.035);
+}
+
+.px-policies-table--suggested tbody tr:hover {
+  background: var(--px-surface-soft);
 }

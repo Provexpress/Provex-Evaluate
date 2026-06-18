@@ -381,12 +381,7 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
         const nameLower = p.name.toLowerCase();
         const defPolicy = DEFAULT_ANALYSIS.policies_analysis.policies_list.find(dp => dp.name.toLowerCase().includes(nameLower) || nameLower.includes(dp.name.toLowerCase()));
         
-        let isRequired = p.is_explicitly_required_by_contract;
-        if (!isRequired && are_policies_required_by_contract) {
-          if (nameLower.includes("cumplimiento") || nameLower.includes("responsabilidad") || nameLower.includes("civil")) {
-            isRequired = true;
-          }
-        }
+        const isRequired = p.is_explicitly_required_by_contract;
         
         return {
           ...p,
