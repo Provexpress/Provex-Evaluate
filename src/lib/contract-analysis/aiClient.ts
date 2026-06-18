@@ -260,19 +260,24 @@ Describe de forma concisa cada uno de los siguientes factores para que la gerenc
 ---
 
 ### BLOQUE 7 — MOTOR DE DECISIÓN DE PÓLIZAS Y GARANTÍAS (policies_analysis)
-Actúa como un asesor financiero y contractual experto. Evalúa la aplicabilidad e impacto de pólizas de seguros y garantías para el contratista:
-- does_apply: Booleano (true/false) que indica si se requiere constituir pólizas o garantías para este tipo de contrato.
-- required_status: "Pólizas requeridas" si se exige la constitución de pólizas en el contrato (o si se sugiere por el contexto del negocio), o "Pólizas no requeridas" en caso contrario.
-- policies_list: Arreglo de exactamente 4 objetos que correspondan a estas pólizas estándar. Incluso si el contrato no las menciona explícitamente, debes sugerir/incluir su aplicabilidad con base en el contexto del contrato (ej. ejecución física de servicios -> Cumplimiento; riesgo de daños físicos -> RCE; anticipo de dinero -> Buen Manejo de Anticipo; entregables/desempeño técnico -> Calidad/Desempeño).
+Actúa como un asesor financiero y contractual experto. Evalúa la aplicabilidad e impacto de pólizas de seguros y garantías para el contratista, distinguiendo explícitamente entre las exigidas contractualmente y las sugeridas analíticamente:
+- does_apply: Booleano (true/false) que indica si se requiere constituir pólizas o garantías en general.
+- required_status: "Pólizas requeridas" si el contrato de forma obligatoria exige constituir garantías (o si se sugiere por el contexto del negocio), o "Pólizas no requeridas" en caso contrario.
+- are_policies_required_by_contract: Booleano (true/false) que indica si el contrato exige explícitamente y por escrito constituir pólizas de seguro.
+- is_policy_type_defined: Booleano (true/false) que indica si el contrato define explícitamente qué tipo o ramos de pólizas se deben constituir (ej: cumplimiento, responsabilidad civil, salarios, etc.).
+- is_policy_amount_defined: Booleano (true/false) que indica si el contrato define explícitamente los montos, límites de cobertura o porcentajes requeridos para las pólizas.
+- required_policies_text: Detalle textual de lo que exige el contrato respecto a seguros. Si are_policies_required_by_contract es true pero el contrato no define el tipo ni el monto en el texto, debes escribir exactamente: "El contrato exige pólizas, pero no define el tipo ni el monto. Debe validarse con la orden de compra o el cliente."
+- policies_list: Arreglo de exactamente 4 objetos correspondientes a estas pólizas estándar: "Póliza de Cumplimiento", "Póliza de Responsabilidad Civil Extracontractual", "Garantía de Calidad y Servicio (Performance)", "Garantía de Buen Manejo de Anticipo".
   Cada objeto debe contener:
-  * name: Nombre de la póliza ("Póliza de Cumplimiento", "Póliza de Responsabilidad Civil Extracontractual", "Garantía de Calidad y Servicio (Performance)", "Garantía de Buen Manejo de Anticipo").
-  * applies: Booleano (true/false). Indica si aplica o es sugerida para este contrato específico.
-  * are_values_specified: Booleano (true/false) indicando si el contrato define explícitamente un monto o porcentaje de cobertura para esta póliza.
-  * value_details: Si are_values_specified es true, detalla el valor del contrato (ej. "10% del valor del contrato" o "200 SMMLV"). Si es false, escribe "Montos no especificados en el contrato".
+  * name: Nombre de la póliza.
+  * applies: Booleano (true/false). Indica si aplica o se sugiere para este contrato en específico.
+  * is_explicitly_required_by_contract: Booleano (true/false). Indica si esta póliza en particular es exigida explícitamente en el texto del contrato.
+  * are_values_specified: Booleano (true/false) indicando si el contrato define el monto de cobertura de esta póliza específica.
+  * value_details: Detalle de montos si are_values_specified es true, o "Montos no especificados en el contrato" si es false.
   * applies_when: Regla general de cuándo aplica esta póliza (ej. "Se aplica si existen obligaciones contractuales y ejecución de servicios").
-  * does_not_apply_when: Regla general de cuándo no aplica esta póliza (ej. "No requerido en contratos de suministro de bajo riesgo o única entrega").
+  * does_not_apply_when: Regla general de cuándo no aplica esta póliza (ej. "No requerido en contratos de bajo riesgo").
   * estimated_cost: Deja siempre la cadena literal "No calculable" (el backend calculará el costo real dinámicamente).
-  * why_applies: Justificación breve (máximo 2 oraciones) de por qué aplica o no aplica en este contrato específico según el contexto extraído.
+  * why_applies: Explicación de por qué aplica, no aplica o se sugiere en este contrato en particular según el contexto del servicio.
 - business_impact: Objeto con el desglose del impacto comercial estructurado:
   * cost_impact: Cómo afecta al costo operativo general (primas a pagar, etc.).
   * profitability_impact: Cómo impacta directamente a la rentabilidad y al margen neto del contratista.
@@ -349,10 +354,15 @@ Devuelve únicamente un objeto JSON que coincida exactamente con la siguiente es
   "policies_analysis": {
     "does_apply": false,
     "required_status": "Pólizas requeridas | Pólizas no requeridas",
+    "are_policies_required_by_contract": false,
+    "is_policy_type_defined": false,
+    "is_policy_amount_defined": false,
+    "required_policies_text": "detalle de pólizas obligatorias o texto de advertencia",
     "policies_list": [
       {
         "name": "Póliza de Cumplimiento",
         "applies": false,
+        "is_explicitly_required_by_contract": false,
         "are_values_specified": false,
         "value_details": "detalle de montos o Montos no especificados en el contrato",
         "applies_when": "condición general cuando aplica",

@@ -37,6 +37,7 @@ export interface ClauseImpact {
 export interface PolicyDecision {
   name: string;
   applies: boolean;
+  is_explicitly_required_by_contract: boolean;
   are_values_specified: boolean;
   value_details: string;
   applies_when: string;
@@ -48,6 +49,10 @@ export interface PolicyDecision {
 export interface PoliciesAnalysis {
   does_apply: boolean;
   required_status: string;
+  are_policies_required_by_contract: boolean;
+  is_policy_type_defined: boolean;
+  is_policy_amount_defined: boolean;
+  required_policies_text: string;
   policies_list: PolicyDecision[];
   business_impact: {
     cost_impact: string;
@@ -129,10 +134,15 @@ const DEFAULT_ANALYSIS: ContractAnalysis = {
   policies_analysis: {
     does_apply: false,
     required_status: "no definidas pero requeridas",
+    are_policies_required_by_contract: false,
+    is_policy_type_defined: false,
+    is_policy_amount_defined: false,
+    required_policies_text: "No se identificaron pólizas exigidas de forma explícita en el acuerdo.",
     policies_list: [
       {
         name: "Póliza de Cumplimiento",
         applies: true,
+        is_explicitly_required_by_contract: false,
         are_values_specified: false,
         value_details: "Montos no especificados en el contrato",
         applies_when: "Se aplica si existen obligaciones contractuales y ejecución de servicios.",
@@ -143,6 +153,7 @@ const DEFAULT_ANALYSIS: ContractAnalysis = {
       {
         name: "Póliza de Responsabilidad Civil Extracontractual",
         applies: true,
+        is_explicitly_required_by_contract: false,
         are_values_specified: false,
         value_details: "Montos no especificados en el contrato",
         applies_when: "Se aplica ante riesgos de daños a terceros o propiedad ajena durante la ejecución.",
@@ -153,6 +164,7 @@ const DEFAULT_ANALYSIS: ContractAnalysis = {
       {
         name: "Garantía de Calidad y Servicio (Performance)",
         applies: true,
+        is_explicitly_required_by_contract: false,
         are_values_specified: false,
         value_details: "Montos no especificados en el contrato",
         applies_when: "Se aplica cuando existen obligaciones de desempeño a largo plazo y entregables técnicos.",
@@ -163,6 +175,7 @@ const DEFAULT_ANALYSIS: ContractAnalysis = {
       {
         name: "Garantía de Buen Manejo de Anticipo",
         applies: false,
+        is_explicitly_required_by_contract: false,
         are_values_specified: false,
         value_details: "Montos no especificados en el contrato",
         applies_when: "Se aplica cuando el cliente realiza desembolsos de dinero por adelantado (anticipo) antes de ejecutar el servicio.",
@@ -298,20 +311,44 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
       minimum_value_required: stringField(decisionObj.minimum_value_required || decisionObj.valor_minimo_requerido || decisionObj.valor_minimo, 200) || "no especificado"
     },
     policies_analysis: (() => {
-      const does_apply = rawPoliciesObj.does_apply !== undefined 
-        ? Boolean(rawPoliciesObj.does_apply) 
+      const are_policies_required_by_contract = rawPoliciesObj.are_policies_required_by_contract !== undefined
+        ? Boolean(rawPoliciesObj.are_policies_required_by_contract)
         : (String(rawPoliciesObj.required_status || rawPoliciesObj.required_policies || "").toLowerCase().includes("requerid") || 
            String(rawPoliciesObj.required_status || rawPoliciesObj.required_policies || "").toLowerCase().includes("sí") || 
            String(rawPoliciesObj.required_status || rawPoliciesObj.required_policies || "").toLowerCase().includes("si") || 
-           String(rawPoliciesObj.does_apply || "").toLowerCase() === "true" ||
            String(root.policies || "").toLowerCase() !== "no encontrado");
+
+      const is_policy_type_defined = rawPoliciesObj.is_policy_type_defined !== undefined
+        ? Boolean(rawPoliciesObj.is_policy_type_defined)
+        : (are_policies_required_by_contract && 
+           String(root.policies || "").toLowerCase() !== "no encontrado" && 
+           !String(root.policies || "").toLowerCase().includes("no definido") && 
+           !String(root.policies || "").toLowerCase().includes("no especificado"));
+
+      const is_policy_amount_defined = rawPoliciesObj.is_policy_amount_defined !== undefined
+        ? Boolean(rawPoliciesObj.is_policy_amount_defined)
+        : (are_policies_required_by_contract && 
+           String(root.policies || "").toLowerCase() !== "no encontrado" && 
+           !String(root.policies || "").toLowerCase().includes("monto no especificado") && 
+           !String(root.policies || "").toLowerCase().includes("no define"));
+
+      const does_apply = are_policies_required_by_contract || rawPoliciesObj.does_apply === true;
 
       const required_status = stringField(
         rawPoliciesObj.required_status || 
         rawPoliciesObj.estado_requerido || 
-        (does_apply ? "Pólizas requeridas" : "Pólizas no requeridas"),
+        (are_policies_required_by_contract ? "Pólizas requeridas" : "Pólizas no requeridas"),
         100
       );
+
+      const required_policies_text = stringField(
+        rawPoliciesObj.required_policies_text || rawPoliciesObj.texto_polizas_requeridas,
+        800
+      ) || (are_policies_required_by_contract 
+             ? (is_policy_type_defined && is_policy_amount_defined 
+                ? (String(root.policies || "") !== "no encontrado" ? String(root.policies) : "Se identificaron pólizas exigidas con tipo y monto.")
+                : "El contrato exige pólizas, pero no define el tipo ni el monto. Debe validarse con la orden de compra o el cliente.")
+             : "El contrato no exige de forma explícita la constitución de pólizas de seguros.");
 
       const rawPoliciesList = Array.isArray(rawPoliciesObj.policies_list || rawPoliciesObj.lista_polizas || rawPoliciesObj.policies)
         ? (rawPoliciesObj.policies_list || rawPoliciesObj.lista_polizas || rawPoliciesObj.policies)
@@ -324,6 +361,9 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
           return {
             name: stringField(rec.name || rec.nombre || rec.policy_type || rec.tipo, 150) || `Póliza ${idx + 1}`,
             applies: rec.applies !== undefined ? Boolean(rec.applies) : Boolean(rec.aplica || false),
+            is_explicitly_required_by_contract: rec.is_explicitly_required_by_contract !== undefined
+              ? Boolean(rec.is_explicitly_required_by_contract)
+              : Boolean(rec.requerida_por_contrato || false),
             are_values_specified: rec.are_values_specified !== undefined ? Boolean(rec.are_values_specified) : Boolean(rec.montos_especificados || false),
             value_details: stringField(rec.value_details || rec.detalle_montos || rec.detalles_valor || rec.valor, 500) || "No especificado en el contrato",
             applies_when: stringField(rec.applies_when || rec.cuando_aplica || rec.condiciones_si, 500) || "",
@@ -340,8 +380,17 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
       policies_list = policies_list.map(p => {
         const nameLower = p.name.toLowerCase();
         const defPolicy = DEFAULT_ANALYSIS.policies_analysis.policies_list.find(dp => dp.name.toLowerCase().includes(nameLower) || nameLower.includes(dp.name.toLowerCase()));
+        
+        let isRequired = p.is_explicitly_required_by_contract;
+        if (!isRequired && are_policies_required_by_contract) {
+          if (nameLower.includes("cumplimiento") || nameLower.includes("responsabilidad") || nameLower.includes("civil")) {
+            isRequired = true;
+          }
+        }
+        
         return {
           ...p,
+          is_explicitly_required_by_contract: isRequired,
           applies_when: p.applies_when || defPolicy?.applies_when || "Se aplica bajo requerimiento del cliente o ejecución de hitos.",
           does_not_apply_when: p.does_not_apply_when || defPolicy?.does_not_apply_when || "No aplica si es exceptuado formalmente por mutuo acuerdo."
         };
@@ -357,6 +406,10 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
       return {
         does_apply,
         required_status,
+        are_policies_required_by_contract,
+        is_policy_type_defined,
+        is_policy_amount_defined,
+        required_policies_text,
         policies_list,
         business_impact
       };

@@ -373,7 +373,7 @@ export default function Home() {
                     <p className="px-file-name" title={file.name}>{file.name}</p>
                     <p className="px-file-size">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                   </div>
-                  <button className="px-btn px-btn--ghost px-btn--sm px-btn--icon" onClick={removeFile} disabled={isLoading} title="Eliminar contrato">
+                  <button className="px-btn px-btn--ghost px-btn--sm px-btn--icon px-file-remove" onClick={removeFile} disabled={isLoading} title="Eliminar contrato">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
@@ -414,13 +414,13 @@ export default function Home() {
                   <input ref={poInputRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handlePoFileChange} />
                 </div>
               ) : (
-                <div className="px-file-card" style={{ borderStyle:"dashed" }}>
-                  <div className="px-file-icon" style={{ backgroundColor:"rgba(106,63,160,0.12)", color:"var(--px-purple)" }}>O/C</div>
+                <div className="px-file-card px-file-card--po">
+                  <div className="px-file-icon px-file-icon--po">O/C</div>
                   <div className="px-file-info">
                     <p className="px-file-name" title={purchaseOrderFile.name}>{purchaseOrderFile.name}</p>
                     <p className="px-file-size">{(purchaseOrderFile.size / (1024 * 1024)).toFixed(2)} MB</p>
                   </div>
-                  <button className="px-btn px-btn--ghost px-btn--sm px-btn--icon" onClick={removePoFile} disabled={isLoading} title="Eliminar orden de compra">
+                  <button className="px-btn px-btn--ghost px-btn--sm px-btn--icon px-file-remove" onClick={removePoFile} disabled={isLoading} title="Eliminar orden de compra">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
@@ -700,81 +700,149 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 🛡️ INSURANCE & GUARANTEES ANALYSIS (PÓLIZAS) */}
+              {/* 🛡️ MOTOR DE DECISIÓN DE PÓLIZAS (POLICIES DECISION ENGINE) */}
               <div className="px-policies-card px-anim-enter px-anim-enter--4">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--px-space-4)", gap: "var(--px-space-4)", flexWrap: "wrap" }}>
-                  <div>
-                    <h3 className="px-card-heading" style={{ margin: 0 }}>🛡️ Motor de Decisión de Pólizas y Garantías</h3>
-                    <p style={{ margin: "2px 0 0", fontSize: "var(--px-text-xs)", color: "var(--px-muted)" }}>
-                      Evaluación analítica de seguros y garantías sugeridas frente a las condiciones del contrato
-                    </p>
+                <h3 className="px-card-heading" style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "var(--px-space-4)" }}>
+                  <span>🛡️ Motor de Decisión de Pólizas y Garantías</span>
+                </h3>
+
+                {/* 🛡️ 1. REQUIRED POLICY (CRITICAL) */}
+                <div className="px-policies-required-section">
+                  <h4 className="px-policies-subsection-title">
+                     PÓLIZA EXIGIDA POR EL CONTRATO
+                  </h4>
+                  
+                  {/* Grid de Semáforo de Auditoría */}
+                  <div className="px-policies-audit-grid">
+                    <div className={`px-audit-kpi ${analysis.policies_analysis.are_policies_required_by_contract ? "px-audit-kpi--active" : "px-audit-kpi--inactive"}`}>
+                      <span className="px-audit-kpi-label">¿Exige pólizas el contrato?</span>
+                      <span className={`px-badge px-badge--${analysis.policies_analysis.are_policies_required_by_contract ? "danger" : "muted"}`}>
+                        {analysis.policies_analysis.are_policies_required_by_contract ? "SÍ" : "NO"}
+                      </span>
+                    </div>
+
+                    <div className={`px-audit-kpi ${analysis.policies_analysis.is_policy_type_defined ? "px-audit-kpi--active" : "px-audit-kpi--warning"}`}>
+                      <span className="px-audit-kpi-label">¿Tipo de póliza especificado?</span>
+                      <span className={`px-badge px-badge--${analysis.policies_analysis.is_policy_type_defined ? "success" : "warning"}`}>
+                        {analysis.policies_analysis.is_policy_type_defined ? "SÍ" : "NO"}
+                      </span>
+                    </div>
+
+                    <div className={`px-audit-kpi ${analysis.policies_analysis.is_policy_amount_defined ? "px-audit-kpi--active" : "px-audit-kpi--warning"}`}>
+                      <span className="px-audit-kpi-label">¿Monto de cobertura definido?</span>
+                      <span className={`px-badge px-badge--${analysis.policies_analysis.is_policy_amount_defined ? "success" : "warning"}`}>
+                        {analysis.policies_analysis.is_policy_amount_defined ? "SÍ" : "NO"}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`px-badge px-badge--${analysis.policies_analysis.does_apply ? "warning" : "success"}`}>
-                    {analysis.policies_analysis.required_status.toUpperCase()}
-                  </span>
+
+                  {/* Detalle o Advertencia Crítica */}
+                  {analysis.policies_analysis.are_policies_required_by_contract ? (
+                    (!analysis.policies_analysis.is_policy_type_defined || !analysis.policies_analysis.is_policy_amount_defined) ? (
+                      <div className="px-policies-warning-callout">
+                        <span className="px-callout-icon">⚠️</span>
+                        <div className="px-callout-content">
+                          <strong>Advertencia de Vacío Contractual:</strong>
+                          <p className="px-callout-text">
+                            El contrato exige pólizas, pero no define el tipo ni el monto. Debe validarse con la orden de compra o el cliente.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="px-policies-success-callout px-policies-success-callout--info">
+                        <span className="px-callout-icon">📋</span>
+                        <div className="px-callout-content">
+                          <strong>Cláusula de Seguros Identificada:</strong>
+                          <p className="px-callout-text">{analysis.policies_analysis.required_policies_text}</p>
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    <div className="px-policies-success-callout">
+                      <span className="px-callout-icon">✓</span>
+                      <div className="px-callout-content">
+                        <strong>Exención de Pólizas:</strong>
+                        <p className="px-callout-text">El contrato no exige de forma explícita la constitución de pólizas de seguros.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Tabla de Decisiones de Pólizas */}
-                <div className="px-policies-table-wrapper">
-                  <table className="px-policies-table">
-                    <thead>
-                      <tr>
-                        <th>Póliza / Garantía</th>
-                        <th style={{ width: "100px", textAlign: "center" }}>¿Aplica?</th>
-                        <th style={{ width: "100px", textAlign: "center" }}>¿Definida?</th>
-                        <th>Estimación de Valor</th>
-                        <th>Aplicabilidad (Cuándo sí / Cuándo no)</th>
-                        <th>Auditoría / Diagnóstico</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {analysis.policies_analysis.policies_list.map((policy, idx) => (
-                        <tr key={idx} className={policy.applies ? "px-policy-row--applies" : "px-policy-row--inactive"}>
-                          <td>
-                            <div className="px-policy-name-cell">
-                              <span className="px-policy-icon">🛡️</span>
-                              <div>
-                                <strong style={{ color: "var(--px-text-strong)", fontSize: "var(--px-text-sm)" }}>{policy.name}</strong>
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                            <span className={`px-badge px-badge--${policy.applies ? "warning" : "muted"}`}>
-                              {policy.applies ? "SÍ" : "NO"}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: "center", verticalAlign: "middle" }}>
-                            <span className={`px-badge px-badge--${policy.are_values_specified ? "success" : "danger"}`}>
-                              {policy.are_values_specified ? "SÍ" : "NO"}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="px-policy-cost-cell">
-                              <span className="px-policy-cost-val">{policy.estimated_cost}</span>
-                              <span className="px-policy-cost-desc">{policy.value_details}</span>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="px-policy-applicability-cell">
-                              <div className="px-applies-yes">
-                                <span className="px-indicator">✅</span> <span>{policy.applies_when}</span>
-                              </div>
-                              <div className="px-applies-no" style={{ marginTop: "4px" }}>
-                                <span className="px-indicator">❌</span> <span>{policy.does_not_apply_when}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className="px-policy-diagnosis-text">{policy.why_applies}</span>
-                          </td>
+                <hr style={{ border: 0, borderTop: "1px solid var(--px-border)", margin: "var(--px-space-6) 0" }} />
+
+                {/* 🟡 2. SUGGESTED POLICIES (SECONDARY) */}
+                <div className="px-policies-suggested-section">
+                  <div style={{ marginBottom: "var(--px-space-4)" }}>
+                    <h4 className="px-policies-subsection-title" style={{ margin: 0 }}>
+                      PÓLIZAS SUGERIDAS (ANÁLISIS)
+                    </h4>
+                    <p style={{ margin: "4px 0 0", fontSize: "var(--px-text-xs)", color: "var(--px-muted)", fontStyle: "italic" }}>
+                      Estimación basada en buenas prácticas, no obligatorias según el contrato.
+                    </p>
+                  </div>
+
+                  {/* Tabla de Pólizas */}
+                  <div className="px-policies-table-wrapper" style={{ marginTop: "0px" }}>
+                    <table className="px-policies-table">
+                      <thead>
+                        <tr>
+                          <th>Póliza / Garantía</th>
+                          <th style={{ width: "130px", textAlign: "center" }}>Origen / Estado</th>
+                          <th>Costo de Prima (Estimación)</th>
+                          <th>Aplicabilidad (Cuándo sí / Cuándo no)</th>
+                          <th>Auditoría / Diagnóstico</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {analysis.policies_analysis.policies_list.map((policy, idx) => (
+                          <tr key={idx} className={policy.is_explicitly_required_by_contract ? "px-policy-row--required" : "px-policy-row--suggested"}>
+                            <td>
+                              <div className="px-policy-name-cell">
+                                <span className="px-policy-icon">🛡️</span>
+                                <div>
+                                  <strong className="px-policy-row-title">{policy.name}</strong>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                              {policy.is_explicitly_required_by_contract ? (
+                                <span className="px-badge px-badge--danger px-badge--bold" style={{ fontSize: "10px", padding: "2px 6px" }}>
+                                  EXIGIDA POR CONTRATO
+                                </span>
+                              ) : (
+                                <span className="px-badge px-badge--info px-badge--light" style={{ fontSize: "10px", padding: "2px 6px", opacity: 0.8 }}>
+                                  SUGERIDA POR ANÁLISIS
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <div className="px-policy-cost-cell">
+                                <span className="px-policy-cost-val">{policy.estimated_cost}</span>
+                                <span className="px-policy-cost-desc">{policy.value_details}</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="px-policy-applicability-cell">
+                                <div className="px-applies-yes">
+                                  <span className="px-indicator">✅</span> <span>{policy.applies_when}</span>
+                                </div>
+                                <div className="px-applies-no" style={{ marginTop: "4px" }}>
+                                  <span className="px-indicator">❌</span> <span>{policy.does_not_apply_when}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="px-policy-diagnosis-text">{policy.why_applies}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {/* Grid de Impacto en Negocio */}
-                <div className="px-policies-impact-grid">
+                <div className="px-policies-impact-grid" style={{ marginTop: "var(--px-space-2)" }}>
                   <div className="px-policy-impact-item">
                     <div className="px-policy-impact-header">
                       <span className="px-policy-impact-icon">💰</span>

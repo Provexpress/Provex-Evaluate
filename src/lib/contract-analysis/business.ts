@@ -122,6 +122,14 @@ export function enforceBusinessRules(
     }
   });
 
+  // Agregar auditoría de pólizas no especificadas a alertas e issues
+  if (next.policies_analysis.are_policies_required_by_contract) {
+    if (!next.policies_analysis.is_policy_type_defined || !next.policies_analysis.is_policy_amount_defined) {
+      issues.add("El contrato exige pólizas pero no especifica los tipos o montos en el acuerdo principal.");
+      conditions.add("Validar los tipos y montos de pólizas exigidos con el cliente o en la orden de compra antes de la firma.");
+    }
+  }
+
   // Integración de costos de pólizas en la rentabilidad
   const activePolicies = next.policies_analysis.policies_list.filter(p => p.applies);
   if (activePolicies.length > 0 && next.policies_analysis.does_apply) {
@@ -394,6 +402,10 @@ function cloneContractAnalysis(contract: ContractAnalysis): ContractAnalysis {
     policies_analysis: {
       does_apply: contract.policies_analysis.does_apply,
       required_status: contract.policies_analysis.required_status,
+      are_policies_required_by_contract: contract.policies_analysis.are_policies_required_by_contract,
+      is_policy_type_defined: contract.policies_analysis.is_policy_type_defined,
+      is_policy_amount_defined: contract.policies_analysis.is_policy_amount_defined,
+      required_policies_text: contract.policies_analysis.required_policies_text,
       policies_list: contract.policies_analysis.policies_list.map((p) => ({ ...p })),
       business_impact: { ...contract.policies_analysis.business_impact }
     }
