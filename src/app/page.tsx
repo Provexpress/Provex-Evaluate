@@ -1,12 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import type { ContractAnalysis } from "@/lib/contract-analysis/schema";
+import type { ContractAnalysis, ClauseImpact } from "@/lib/contract-analysis/schema";
 
 const decisionClassMap: Record<string, string> = {
   firmar: "sign",
   firmar_con_condiciones: "conditional",
   no_recomendado_sin_validacion: "do_not_sign"
+};
+
+const severityColorMap: Record<string, string> = {
+  alta: "var(--px-red)",
+  media: "var(--px-amber)",
+  baja: "var(--px-blue)"
 };
 
 export default function Home() {
@@ -576,53 +582,133 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* NUEVA SECCIÓN: FACTORES CLAVE PARA FIRMAR */}
-              <div className="px-panel px-stack" style={{ gap: "var(--px-space-4)" }}>
-                <div>
-                  <p className="px-eyebrow">Evaluación de Negocios</p>
-                  <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Factores Clave para Firmar</h2>
+              {/* SECCIÓN DUAL: CONDICIONES DE FACTURACIÓN Y FACTORES CLAVE PARA FIRMAR */}
+              <div className="px-grid px-grid--split" style={{ gridTemplateColumns: "1fr 1fr", gap: "var(--px-space-4)" }}>
+                
+                {/* CONDICIONES DE FACTURACIÓN */}
+                <div className="px-panel px-stack" style={{ gap: "var(--px-space-4)" }}>
+                  <div>
+                    <p className="px-eyebrow">Flujo de Fondos</p>
+                    <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Condiciones de Facturación</h2>
+                  </div>
+
+                  <div className="px-stack" style={{ gap: "var(--px-space-3)" }}>
+                    <div style={{ paddingBottom: "var(--px-space-2)", borderBottom: "1px solid var(--px-border)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-muted)" }}>📅 Plazos / Días de Pago</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-md)", fontWeight: "bold" }}>{analysis.billing_conditions.payment_days}</p>
+                    </div>
+
+                    <div style={{ paddingBottom: "var(--px-space-2)", borderBottom: "1px solid var(--px-border)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-muted)" }}>📋 Requisitos de Radicación</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)" }}>{analysis.billing_conditions.requirements}</p>
+                    </div>
+
+                    <div style={{ paddingBottom: "var(--px-space-2)", borderBottom: "1px solid var(--px-border)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-muted)" }}>⚠️ Restricciones / Trabas</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)" }}>{analysis.billing_conditions.constraints}</p>
+                    </div>
+
+                    {/* Impacto destacado en flujo de caja */}
+                    <div style={{ padding: "var(--px-space-3)", borderRadius: "var(--px-radius-md)", background: "var(--px-surface-tint)", borderLeft: "4px solid var(--px-blue)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-blue)" }}>👉 Impacto en Flujo de Caja</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", fontWeight: "bold", color: "var(--px-text-strong)" }}>{analysis.billing_conditions.cash_flow_impact}</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="px-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "var(--px-space-4)" }}>
-                  <div className="px-feature-box" style={{ background: "var(--px-surface-raised)" }}>
-                    <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", color: "var(--px-purple)" }}>Valor Mínimo Requerido</p>
-                    <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                      {analysis.factors_to_sign.minimum_value_required}
-                    </p>
+                {/* FACTORES CLAVE PARA FIRMAR */}
+                <div className="px-panel px-stack" style={{ gap: "var(--px-space-4)" }}>
+                  <div>
+                    <p className="px-eyebrow">Lista de Verificación de Gerencia</p>
+                    <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Factores Clave para Firmar</h2>
                   </div>
-                  <div className="px-feature-box" style={{ background: "var(--px-surface-raised)" }}>
-                    <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", color: "var(--px-purple)" }}>Condiciones de Pago</p>
-                    <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                      {analysis.factors_to_sign.payment_conditions}
-                    </p>
+
+                  <div className="px-stack" style={{ gap: "var(--px-space-2-5)" }}>
+                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>💰 Valor Mínimo Requerido</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
+                        {analysis.factors_to_sign.minimum_value_required}
+                      </p>
+                    </div>
+                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>💳 Condiciones de Pago</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
+                        {analysis.factors_to_sign.payment_conditions}
+                      </p>
+                    </div>
+                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>🛡️ Tolerancia al Riesgo</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
+                        {analysis.factors_to_sign.risk_tolerance}
+                      </p>
+                    </div>
+                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>📈 Cobertura de Costos</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
+                        {analysis.factors_to_sign.cost_coverage}
+                      </p>
+                    </div>
+                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
+                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>⚙️ Requisitos Operativos</p>
+                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
+                        {analysis.factors_to_sign.operational_requirements}
+                      </p>
+                    </div>
                   </div>
-                  <div className="px-feature-box" style={{ background: "var(--px-surface-raised)" }}>
-                    <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", color: "var(--px-purple)" }}>Tolerancia al Riesgo</p>
-                    <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                      {analysis.factors_to_sign.risk_tolerance}
-                    </p>
-                  </div>
-                  <div className="px-feature-box" style={{ background: "var(--px-surface-raised)" }}>
-                    <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", color: "var(--px-purple)" }}>Cobertura de Costos</p>
-                    <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                      {analysis.factors_to_sign.cost_coverage}
-                    </p>
-                  </div>
-                  <div className="px-feature-box" style={{ background: "var(--px-surface-raised)" }}>
-                    <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", color: "var(--px-purple)" }}>Requisitos Operativos</p>
-                    <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                      {analysis.factors_to_sign.operational_requirements}
-                    </p>
-                  </div>
+                </div>
+
+              </div>
+
+              {/* NUEVA SECCIÓN: MOTOR DE IMPACTO DE CLÁUSULAS */}
+              <div className="px-panel px-stack" style={{ gap: "var(--px-space-4)" }}>
+                <div>
+                  <p className="px-eyebrow">Bloque 1 — Clause Impact Engine</p>
+                  <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Traducción de Cláusulas e Impacto en Negocio</h2>
+                </div>
+
+                <div className="px-grid" style={{ gridTemplateColumns: "1fr", gap: "var(--px-space-3.5)" }}>
+                  {analysis.clause_impacts && analysis.clause_impacts.length > 0 ? (
+                    analysis.clause_impacts.map((ci: ClauseImpact, idx: number) => (
+                      <div 
+                        key={idx} 
+                        className="px-card" 
+                        style={{ 
+                          borderLeft: `5px solid ${severityColorMap[ci.severity] || "var(--px-border)"}`,
+                          background: "var(--px-surface-raised)",
+                          padding: "var(--px-space-4)"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--px-space-2)" }}>
+                          <h4 style={{ margin: 0, fontSize: "var(--px-text-md)", fontWeight: "bold", color: "var(--px-text-strong)" }}>
+                            {ci.clause}
+                          </h4>
+                          <span className={`px-badge px-badge--${ci.severity === "alta" ? "danger" : ci.severity === "media" ? "warning" : "success"}`}>
+                            Severidad {ci.severity.toUpperCase()}
+                          </span>
+                        </div>
+                        <p style={{ margin: "0 0 var(--px-space-3) 0", fontSize: "var(--px-text-sm)", color: "var(--px-muted)", fontStyle: "italic" }}>
+                          <strong>Detalle Contractual:</strong> {ci.detail}
+                        </p>
+                        <div style={{ padding: "var(--px-space-3)", borderRadius: "var(--px-radius-sm)", background: "var(--px-surface-tint)", border: "1px solid rgba(0,0,0,0.01)" }}>
+                          <strong style={{ fontSize: "var(--px-text-xs)", color: "var(--px-text-soft)", textTransform: "uppercase", letterSpacing: "0.04em" }}>👉 Impacto en Negocio:</strong>
+                          <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-md)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
+                            {ci.business_impact}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="px-help" style={{ fontStyle: "italic" }}>No se han definido desgloses de impacto para las cláusulas de este contrato.</p>
+                  )}
                 </div>
               </div>
 
-              {/* BLOQUE 1 — DATOS DEL CONTRATO */}
+              {/* DATOS DE METADATOS DEL CONTRATO */}
               <div className="px-panel">
                 <div className="px-panel__header" style={{ marginBottom: "var(--px-space-4)" }}>
                   <div>
-                    <p className="px-eyebrow">Bloque 1</p>
-                    <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Datos del Contrato</h2>
+                    <p className="px-eyebrow">Variables Base</p>
+                    <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Datos Generales del Acuerdo</h2>
                   </div>
                 </div>
 
@@ -675,21 +761,6 @@ export default function Home() {
                       <tr>
                         <td><strong>Forma de Pago</strong></td>
                         <td>{analysis.data.payment_terms}</td>
-                      </tr>
-                      {/* Pólizas */}
-                      <tr>
-                        <td><strong>Pólizas</strong></td>
-                        <td>{analysis.data.policies}</td>
-                      </tr>
-                      {/* Penalidades */}
-                      <tr>
-                        <td><strong>Penalidades</strong></td>
-                        <td>{analysis.data.penalties}</td>
-                      </tr>
-                      {/* Terminación */}
-                      <tr>
-                        <td><strong>Terminación</strong></td>
-                        <td>{analysis.data.termination}</td>
                       </tr>
                     </tbody>
                   </table>

@@ -173,7 +173,7 @@ Si esta información está disponible (no es "no provisto"), úsala para calcula
 
 ## ANÁLISIS REQUERIDO
 
-Responde en 4 bloques principales dentro del JSON:
+Responde en los siguientes bloques principales dentro del JSON:
 
 ---
 
@@ -212,7 +212,26 @@ Lista máximo 5 alertas comerciales o riesgos críticos en un arreglo de cadenas
 
 ---
 
-### BLOQUE 4 — FACTORES CLAVE PARA FIRMAR (factors_to_sign)
+### BLOQUE 4 — CONDICIONES DE FACTURACIÓN (billing_conditions)
+Extrae los siguientes detalles de cobro:
+- payment_days: días específicos de pago si se mencionan (ej. "Solo los jueves" o "A los 60 días calendario").
+- requirements: requisitos documentales o aprobaciones de supervisión (ej. "Acta aprobada por interventor").
+- constraints: trabas operativas o plazos límites de radicación.
+- cash_flow_impact: análisis de negocio de cómo esto afecta directamente la liquidez del proveedor.
+
+---
+
+### BLOQUE 5 — MOTOR DE IMPACTO DE CLÁUSULAS (clause_impacts)
+Construye un arreglo de objetos para las cláusulas críticas (Penalidades, Terminación, Pólizas). Tradúcelas a su impacto en el negocio:
+Cada objeto del arreglo debe tener:
+- clause: Nombre de la cláusula analizada (ej: "Penalidades", "Terminación" o "Pólizas y Garantías").
+- detail: Obligación contractual exacta extraída (resumen corto).
+- business_impact: Traducción del impacto comercial real. Asocia Penalidades con afectación a rentabilidad, Pólizas con incremento de costos operativos directos, y Terminación unilateral con riesgos de continuidad comercial.
+- severity: Severidad del impacto: "alta" | "media" | "baja".
+
+---
+
+### BLOQUE 6 — FACTORES CLAVE PARA FIRMAR (factors_to_sign)
 Describe de forma concisa cada uno de los siguientes factores para que la gerencia evalúe las condiciones de firma:
 - minimum_value_required: descripción del valor mínimo requerido para que el negocio sea viable y cubra el margen objetivo.
 - payment_conditions: términos o plazos de pago ideales recomendados.
@@ -222,7 +241,7 @@ Describe de forma concisa cada uno de los siguientes factores para que la gerenc
 
 ---
 
-### BLOQUE 5 — RECOMENDACIÓN DE VIABILIDAD (decision)
+### BLOQUE 7 — RECOMENDACIÓN DE VIABILIDAD (decision)
 Si el contrato no tiene información financiera clara y tampoco hay Orden de Compra:
 - NO rechaces automáticamente.
 - En su lugar:
@@ -264,6 +283,20 @@ Devuelve únicamente un objeto JSON que coincida exactamente con la siguiente es
     }
   },
   "issues": [],
+  "billing_conditions": {
+    "payment_days": "días específicos o plazos",
+    "requirements": "aprobaciones e interventoría requeridas",
+    "constraints": "restricciones y plazos límites de radicación",
+    "cash_flow_impact": "impacto en flujo de caja y liquidez"
+  },
+  "clause_impacts": [
+    {
+      "clause": "nombre de la cláusula",
+      "detail": "detalle contractual extraído",
+      "business_impact": "impacto real en el negocio",
+      "severity": "alta | media | baja"
+    }
+  ],
   "factors_to_sign": {
     "minimum_value_required": "descripción de valor mínimo",
     "payment_conditions": "descripción de plazos de pago ideales",

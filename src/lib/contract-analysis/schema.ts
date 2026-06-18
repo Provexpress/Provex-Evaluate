@@ -2,6 +2,7 @@ export type Profitability = "alta" | "media" | "baja";
 export type Risk = "alto" | "medio" | "bajo";
 export type CashFlow = "fuerte" | "medio" | "debil";
 export type RecommendationType = "firmar" | "firmar_con_condiciones" | "no_recomendado_sin_validacion";
+export type Severity = "alta" | "media" | "baja";
 
 export interface Metric<T> {
   val: T;
@@ -14,6 +15,20 @@ export interface FactorsToSign {
   risk_tolerance: string;
   cost_coverage: string;
   operational_requirements: string;
+}
+
+export interface BillingConditions {
+  payment_days: string;
+  requirements: string;
+  constraints: string;
+  cash_flow_impact: string;
+}
+
+export interface ClauseImpact {
+  clause: string;
+  detail: string;
+  business_impact: string;
+  severity: Severity;
 }
 
 export interface ContractAnalysis {
@@ -36,6 +51,8 @@ export interface ContractAnalysis {
   };
   issues: string[];
   factors_to_sign: FactorsToSign;
+  billing_conditions: BillingConditions;
+  clause_impacts: ClauseImpact[];
   decision: {
     recommendation: string;
     type: RecommendationType;
@@ -70,6 +87,13 @@ const DEFAULT_ANALYSIS: ContractAnalysis = {
     cost_coverage: "No determinado",
     operational_requirements: "No determinados"
   },
+  billing_conditions: {
+    payment_days: "no encontrado",
+    requirements: "no encontrado",
+    constraints: "no encontrado",
+    cash_flow_impact: "no encontrado"
+  },
+  clause_impacts: [],
   decision: {
     recommendation: "El contrato requiere revisión manual antes de proceder.",
     type: "firmar_con_condiciones",
@@ -86,6 +110,8 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
   const analysisObj = asRecord(root.analysis || root.analisis);
   const decisionObj = asRecord(root.decision);
   const rawFactorsObj = asRecord(root.factors_to_sign || root.factores_para_firmar || root.factores_clave);
+  const rawBillingObj = asRecord(root.billing_conditions || root.condiciones_facturacion || root.facturacion);
+  const rawClauseImpacts = root.clause_impacts || root.impactos_clausulas || root.impacto_clausulas || [];
   const issuesArray = root.issues || root.problemas_clave || root.problemas;
 
   // Normalizar partes
@@ -132,6 +158,28 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
   // Normalizar bandera de Orden de Compra
   const financials_from_po = Boolean(dataObj.financials_from_po || dataObj.datos_de_po || root.financials_from_po || false);
 
+  // Normalizar Condiciones de Facturación
+  const billing_conditions: BillingConditions = {
+    payment_days: stringField(rawBillingObj.payment_days || rawBillingObj.dias_pago || rawBillingObj.plazo, 200) || "no encontrado",
+    requirements: stringField(rawBillingObj.requirements || rawBillingObj.requisitos || rawBillingObj.aprobacion, 400) || "no encontrado",
+    constraints: stringField(rawBillingObj.constraints || rawBillingObj.restricciones || rawBillingObj.trabas, 400) || "no encontrado",
+    cash_flow_impact: stringField(rawBillingObj.cash_flow_impact || rawBillingObj.impacto_flujo_caja || rawBillingObj.impacto, 400) || "no encontrado"
+  };
+
+  // Normalizar Impacto de Cláusulas
+  let clause_impacts: ClauseImpact[] = [];
+  if (Array.isArray(rawClauseImpacts)) {
+    clause_impacts = rawClauseImpacts.map((item) => {
+      const rec = asRecord(item);
+      return {
+        clause: stringField(rec.clause || rec.clausula || rec.nombre, 100) || "Cláusula no identificada",
+        detail: stringField(rec.detail || rec.detalle || rec.texto, 600) || "no encontrado",
+        business_impact: stringField(rec.business_impact || rec.impacto_negocio || rec.impacto, 600) || "no encontrado",
+        severity: normalizeSeverity(rec.severity || rec.gravedad || rec.severidad)
+      };
+    });
+  }
+
   return {
     data: {
       parties: normalizedParties,
@@ -158,6 +206,8 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
       cost_coverage: stringField(rawFactorsObj.cost_coverage || rawFactorsObj.cobertura_costos, 300) || "No especificado",
       operational_requirements: stringField(rawFactorsObj.operational_requirements || rawFactorsObj.requisitos_operativos, 300) || "No especificado"
     },
+    billing_conditions,
+    clause_impacts,
     decision: {
       recommendation: stringField(decisionObj.recommendation || decisionObj.explicacion || decisionObj.reason, 500) || DEFAULT_ANALYSIS.decision.recommendation,
       type: normalizeRecommendationType(decisionObj.type || decisionObj.recomendacion || decisionObj.tipo),
@@ -244,6 +294,14 @@ function normalizeCashFlow(value: unknown): CashFlow {
   if (val === "medium" || val === "medio") return "medio";
   if (val === "weak" || val === "debil" || val === "débil") return "debil";
   return "debil";
+}
+
+function normalizeSeverity(value: unknown): Severity {
+  const val = String(value).trim().toLowerCase();
+  if (val === "high" || val === "alto" || val === "alta") return "alta";
+  if (val === "medium" || val === "medio" || val === "media") return "media";
+  if (val === "low" || val === "bajo" || val === "baja") return "baja";
+  return "media";
 }
 
 function normalizeRecommendationType(value: unknown): RecommendationType {

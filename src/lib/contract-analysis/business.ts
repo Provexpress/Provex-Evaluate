@@ -43,15 +43,24 @@ export function enforceBusinessRules(
   }
 
   // Payment approval logic
-  if (paymentDependsOnApproval(next.data.payment_terms)) {
+  const approvalRequired = paymentDependsOnApproval(next.data.payment_terms);
+  if (approvalRequired) {
     next.analysis.cash_flow.val = weakerCashFlow(next.analysis.cash_flow.val, "debil");
     next.analysis.cash_flow.reason = "Los plazos de facturación dependen de aprobaciones externas o hitos de interventoría.";
+    
+    next.billing_conditions.requirements = next.billing_conditions.requirements === "no encontrado"
+      ? "Requiere aprobación del supervisor y radicación de factura antes del pago."
+      : next.billing_conditions.requirements;
+      
+    next.billing_conditions.cash_flow_impact = "La ventana de aprobación del cliente puede retrasar la liquidez y debilitar el flujo de caja.";
+    
     issues.add("El pago depende de aprobación o aceptación; el flujo de caja es más débil.");
     conditions.add("Negociar plazos de pago fijos y automáticos sin depender de la firma de un supervisor.");
   }
 
   // Costs on contractor logic
-  if (costsFallOnContractor(next)) {
+  const contractorCosts = costsFallOnContractor(next);
+  if (contractorCosts) {
     next.analysis.profitability.val = downgradeProfitability(next.analysis.profitability.val);
     next.analysis.profitability.reason = "El proveedor debe asumir la totalidad de costos operativos y pólizas exigidas.";
     issues.add("El contrato traslada costos o gastos al contratista.");
@@ -59,12 +68,16 @@ export function enforceBusinessRules(
   }
 
   // Unilateral termination logic
-  if (hasUnilateralTermination(next.data.termination)) {
+  const unilateralTerm = hasUnilateralTermination(next.data.termination);
+  if (unilateralTerm) {
     next.analysis.risk.val = higherRisk(next.analysis.risk.val, "alto");
     next.analysis.risk.reason = "Cláusulas permiten la rescisión del acuerdo sin justa causa e indemnización a favor del cliente.";
     issues.add("La terminación parece unilateral; el riesgo de continuidad para el contratista es alto.");
     conditions.add("Incluir preaviso recíproco de mínimo 30 días y compensaciones por terminación anticipada.");
   }
+
+  // Enrich clause impacts
+  enrichClauseImpacts(next, approvalRequired, contractorCosts, unilateralTerm);
 
   // Financial calculations and viability parameters check
   if (businessInputs && businessInputs.estimated_cost !== undefined && businessInputs.expected_margin !== undefined) {
@@ -231,6 +244,50 @@ function resolveReason(contract: ContractAnalysis): string {
   return "Decisión basada en el valor del contrato, formas de pago, penalidades, pólizas y variables económicas del contratista.";
 }
 
+function enrichClauseImpacts(
+  contract: ContractAnalysis,
+  approvalRequired: boolean,
+  contractorCosts: boolean,
+  unilateralTerm: boolean
+) {
+  // Asegurarse de que existan impactos básicos si no los inyectó la IA
+  const impacts = contract.clause_impacts;
+
+  const hasPenalties = impacts.some(i => i.clause.toLowerCase().includes("penal"));
+  if (!hasPenalties && contract.data.penalties !== "no encontrado") {
+    impacts.push({
+      clause: "Penalidades",
+      detail: contract.data.penalties,
+      business_impact: "Afecta la rentabilidad comercial. Multas por moras o entregas tardías pueden generar pérdidas financieras directas.",
+      severity: "alta"
+    });
+  }
+
+  const hasTermination = impacts.some(i => i.clause.toLowerCase().includes("termina"));
+  if (!hasTermination && contract.data.termination !== "no encontrado") {
+    impacts.push({
+      clause: "Terminación",
+      detail: contract.data.termination,
+      business_impact: unilateralTerm 
+        ? "Afecta el riesgo de continuidad. El cliente puede rescindir el contrato unilateralmente dejando al proveedor con capacidad ociosa." 
+        : "Afecta la estabilidad del proyecto y el riesgo a largo plazo.",
+      severity: unilateralTerm ? "alta" : "media"
+    });
+  }
+
+  const hasPolicies = impacts.some(i => i.clause.toLowerCase().includes("poliza") || i.clause.toLowerCase().includes("póliza"));
+  if (!hasPolicies && contract.data.policies !== "no encontrado") {
+    impacts.push({
+      clause: "Pólizas y Garantías",
+      detail: contract.data.policies,
+      business_impact: contractorCosts 
+        ? "Incrementa los costos operativos directos. El traslado total de costos de pólizas reduce directamente el margen de ganancia." 
+        : "Aumenta los costos de suscripción y movilización inicial.",
+      severity: contractorCosts ? "alta" : "media"
+    });
+  }
+}
+
 function cloneContractAnalysis(contract: ContractAnalysis): ContractAnalysis {
   return {
     data: {
@@ -252,6 +309,8 @@ function cloneContractAnalysis(contract: ContractAnalysis): ContractAnalysis {
     },
     issues: [...contract.issues],
     factors_to_sign: { ...contract.factors_to_sign },
+    billing_conditions: { ...contract.billing_conditions },
+    clause_impacts: contract.clause_impacts.map((ci) => ({ ...ci })),
     decision: {
       recommendation: contract.decision.recommendation,
       type: contract.decision.type,
