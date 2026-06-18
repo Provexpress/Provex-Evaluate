@@ -16,10 +16,8 @@ export default function Home() {
   const [dragActive, setDragActive] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Estado del archivo de orden de compra y arrastre
+  // Estado del archivo de orden de compra
   const [purchaseOrderFile, setPurchaseOrderFile] = useState<File | null>(null);
-  const [poDragActive, setPoDragActive] = useState<boolean>(false);
-  const poInputRef = useRef<HTMLInputElement>(null);
 
   // Parámetros financieros del negocio
   const [estimatedCost, setEstimatedCost] = useState<string>("");
@@ -146,51 +144,8 @@ export default function Home() {
     }
   };
 
-  // Eventos de arrastre para orden de compra
-  const handlePoDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setPoDragActive(true);
-    } else if (e.type === "dragleave") {
-      setPoDragActive(false);
-    }
-  };
-
-  const handlePoDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setPoDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === "application/pdf" || droppedFile.name.endsWith(".pdf")) {
-        setPurchaseOrderFile(droppedFile);
-        setError(null);
-      } else {
-        setError("Únicamente se soportan archivos PDF para la Orden de Compra.");
-      }
-    }
-  };
-
-  const handlePoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type === "application/pdf" || selectedFile.name.endsWith(".pdf")) {
-        setPurchaseOrderFile(selectedFile);
-        setError(null);
-      } else {
-        setError("Únicamente se soportan archivos PDF para la Orden de Compra.");
-      }
-    }
-  };
-
   const triggerFileSelect = () => {
     fileInputRef.current?.click();
-  };
-
-  const triggerPoFileSelect = () => {
-    poInputRef.current?.click();
   };
 
   const removeFile = () => {
@@ -202,9 +157,6 @@ export default function Home() {
 
   const removePoFile = () => {
     setPurchaseOrderFile(null);
-    if (poInputRef.current) {
-      poInputRef.current.value = "";
-    }
   };
 
   // Enviar archivos a la API con costos y márgenes
@@ -257,9 +209,6 @@ export default function Home() {
     setExpectedMargin("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
-    }
-    if (poInputRef.current) {
-      poInputRef.current.value = "";
     }
   };
 
@@ -389,37 +338,15 @@ export default function Home() {
             </div>
 
             {/* Orden de Compra */}
-            <div className="px-field">
-              <label className="px-label">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display:"inline", marginRight:"5px", verticalAlign:"middle" }}>
-                  <rect x="5" y="2" width="14" height="20" rx="2" />
-                  <line x1="9" y1="9" x2="15" y2="9" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="12" y2="17" />
-                </svg>
-                Orden de Compra
-                <span style={{ fontWeight:"normal", color:"var(--px-muted-2)", textTransform:"none", letterSpacing:0, marginLeft:"4px", fontSize:"0.7rem" }}>— Opcional</span>
-              </label>
-              {!purchaseOrderFile ? (
-                <div
-                  className={`px-upload-zone ${poDragActive ? "drag-over" : ""}`}
-                  onDragEnter={handlePoDrag}
-                  onDragOver={handlePoDrag}
-                  onDragLeave={handlePoDrag}
-                  onDrop={handlePoDrop}
-                  onClick={triggerPoFileSelect}
-                  style={{ padding: "var(--px-space-4) var(--px-space-3)", minHeight: "100px" }}
-                >
-                  <div className="px-upload-icon-circle" style={{ width:"36px", height:"36px", background:"rgba(106,63,160,0.10)", color:"var(--px-purple)" }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="12" y1="18" x2="12" y2="12" /><line x1="9" y1="15" x2="15" y2="15" />
-                    </svg>
-                  </div>
-                  <p className="px-upload-title" style={{ fontSize:"var(--px-text-sm)" }}>Subir Orden de Compra</p>
-                  <p className="px-upload-subtitle">Si el contrato no incluye valor económico</p>
-                  <input ref={poInputRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handlePoFileChange} />
-                </div>
-              ) : (
+            {purchaseOrderFile && (
+              <div className="px-field">
+                <label className="px-label">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display:"inline", marginRight:"5px", verticalAlign:"middle" }}>
+                    <rect x="5" y="2" width="14" height="20" rx="2" />
+                    <line x1="9" y1="9" x2="15" y2="9" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="12" y2="17" />
+                  </svg>
+                  Orden de Compra
+                </label>
                 <div className="px-file-card px-file-card--po">
                   <div className="px-file-icon px-file-icon--po">O/C</div>
                   <div className="px-file-info">
@@ -432,8 +359,8 @@ export default function Home() {
                     </svg>
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
 
