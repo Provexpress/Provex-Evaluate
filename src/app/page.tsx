@@ -702,49 +702,99 @@ export default function Home() {
 
               {/* 🛡️ INSURANCE & GUARANTEES ANALYSIS (PÓLIZAS) */}
               <div className="px-policies-card px-anim-enter px-anim-enter--4">
-                <h3 className="px-card-heading">Análisis de Pólizas y Garantías</h3>
-                <div className="px-policies-grid">
-                  {/* Tipos de póliza */}
-                  <div className="px-policy-block">
-                    <span className="px-policy-block__label">🛡️ Tipos de Póliza Requeridos</span>
-                    <p className="px-policy-block__text">{analysis.policies_analysis.required_policies}</p>
-                  </div>
-
-                  {/* ¿Monto definido? */}
-                  <div className="px-policy-block">
-                    <span className="px-policy-block__label">💰 ¿Monto Definido en Contrato?</span>
-                    <div>
-                      <span className={`px-badge px-badge--${analysis.policies_analysis.are_values_specified ? "success" : "warning"}`} style={{ display: "inline-block", marginBottom: "var(--px-space-2)" }}>
-                        {analysis.policies_analysis.are_values_specified ? "SÍ" : "NO"}
-                      </span>
-                    </div>
-                    <p className="px-policy-block__text" style={{ fontSize: "var(--px-text-xs)", color: "var(--px-text-soft)", margin: 0 }}>
-                      {analysis.policies_analysis.value_details}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--px-space-4)", gap: "var(--px-space-4)", flexWrap: "wrap" }}>
+                  <div>
+                    <h3 className="px-card-heading" style={{ margin: 0 }}>🛡️ Motor de Decisión de Pólizas y Garantías</h3>
+                    <p style={{ margin: "2px 0 0", fontSize: "var(--px-text-xs)", color: "var(--px-muted)" }}>
+                      Evaluación analítica de seguros y garantías sugeridas frente a las condiciones del contrato
                     </p>
                   </div>
-
-                  {/* Estimación de costo */}
-                  <div className="px-policy-block px-policy-block--estimate">
-                    <span className="px-policy-block__label">📈 Costo Estimado (Asunciones del Sector)</span>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--px-space-1-5)", marginTop: "var(--px-space-2)" }}>
-                      <div className="px-policy-estimate-row">
-                        <span className="px-policy-estimate-name">Póliza de Cumplimiento (10%):</span>
-                        <span className="px-policy-estimate-value">{analysis.policies_analysis.estimated_compliance_cost}</span>
-                      </div>
-                      <div className="px-policy-estimate-row">
-                        <span className="px-policy-estimate-name">Póliza Responsabilidad Civil:</span>
-                        <span className="px-policy-estimate-value">{analysis.policies_analysis.estimated_liability_cost}</span>
-                      </div>
-                    </div>
-                  </div>
+                  <span className={`px-badge px-badge--${analysis.policies_analysis.does_apply ? "warning" : "success"}`}>
+                    {analysis.policies_analysis.required_status.toUpperCase()}
+                  </span>
                 </div>
 
-                {/* Impacto en negocio */}
-                <div className="px-policy-impact">
-                  <span className="px-policy-impact__icon">💡</span>
-                  <div className="px-policy-impact__content">
-                    <span className="px-policy-impact__label">Impacto en el Negocio</span>
-                    <p className="px-policy-impact__text">{analysis.policies_analysis.business_impact}</p>
+                {/* Tabla de Decisiones de Pólizas */}
+                <div className="px-policies-table-wrapper">
+                  <table className="px-policies-table">
+                    <thead>
+                      <tr>
+                        <th>Póliza / Garantía</th>
+                        <th style={{ width: "100px", textAlign: "center" }}>¿Aplica?</th>
+                        <th style={{ width: "100px", textAlign: "center" }}>¿Definida?</th>
+                        <th>Estimación de Valor</th>
+                        <th>Aplicabilidad (Cuándo sí / Cuándo no)</th>
+                        <th>Auditoría / Diagnóstico</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {analysis.policies_analysis.policies_list.map((policy, idx) => (
+                        <tr key={idx} className={policy.applies ? "px-policy-row--applies" : "px-policy-row--inactive"}>
+                          <td>
+                            <div className="px-policy-name-cell">
+                              <span className="px-policy-icon">🛡️</span>
+                              <div>
+                                <strong style={{ color: "var(--px-text-strong)", fontSize: "var(--px-text-sm)" }}>{policy.name}</strong>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                            <span className={`px-badge px-badge--${policy.applies ? "warning" : "muted"}`}>
+                              {policy.applies ? "SÍ" : "NO"}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: "center", verticalAlign: "middle" }}>
+                            <span className={`px-badge px-badge--${policy.are_values_specified ? "success" : "danger"}`}>
+                              {policy.are_values_specified ? "SÍ" : "NO"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="px-policy-cost-cell">
+                              <span className="px-policy-cost-val">{policy.estimated_cost}</span>
+                              <span className="px-policy-cost-desc">{policy.value_details}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="px-policy-applicability-cell">
+                              <div className="px-applies-yes">
+                                <span className="px-indicator">✅</span> <span>{policy.applies_when}</span>
+                              </div>
+                              <div className="px-applies-no" style={{ marginTop: "4px" }}>
+                                <span className="px-indicator">❌</span> <span>{policy.does_not_apply_when}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="px-policy-diagnosis-text">{policy.why_applies}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Grid de Impacto en Negocio */}
+                <div className="px-policies-impact-grid">
+                  <div className="px-policy-impact-item">
+                    <div className="px-policy-impact-header">
+                      <span className="px-policy-impact-icon">💰</span>
+                      <span className="px-policy-impact-title">Impacto en Costos</span>
+                    </div>
+                    <p className="px-policy-impact-text">{analysis.policies_analysis.business_impact.cost_impact}</p>
+                  </div>
+                  <div className="px-policy-impact-item">
+                    <div className="px-policy-impact-header">
+                      <span className="px-policy-impact-icon">📉</span>
+                      <span className="px-policy-impact-title">Impacto en Rentabilidad</span>
+                    </div>
+                    <p className="px-policy-impact-text">{analysis.policies_analysis.business_impact.profitability_impact}</p>
+                  </div>
+                  <div className="px-policy-impact-item">
+                    <div className="px-policy-impact-header">
+                      <span className="px-policy-impact-icon">⚡</span>
+                      <span className="px-policy-impact-title">Esfuerzo de Gestión</span>
+                    </div>
+                    <p className="px-policy-impact-text">{analysis.policies_analysis.business_impact.management_effort}</p>
                   </div>
                 </div>
               </div>

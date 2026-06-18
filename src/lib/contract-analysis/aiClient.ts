@@ -259,14 +259,24 @@ Describe de forma concisa cada uno de los siguientes factores para que la gerenc
 
 ---
 
-### BLOQUE 7 — ANÁLISIS DE PÓLIZAS Y GARANTÍAS (policies_analysis)
-Extrae los siguientes detalles de pólizas de seguros y garantías requeridas:
-- required_policies: Listado de pólizas de seguros y garantías contractuales requeridas (ej: "Cumplimiento, Responsabilidad Civil Extracontractual") o "no definidas pero requeridas" si el contrato exige constituir garantías pero no detalla cuáles.
-- are_values_specified: Booleano (true/false) indicando si se especifican los montos (porcentajes o valores específicos de cobertura de las pólizas en el contrato).
-- value_details: Detalle de los montos especificados para cada póliza (ej: "Cumplimiento al 10% del valor del contrato, RCE por 500 SMMLV") o "Los montos de las pólizas no están especificados en el contrato".
-- estimated_compliance_cost: Escribe "No calculable" (el backend lo calculará dinámicamente).
-- estimated_liability_cost: Escribe "No calculable" (el backend lo calculará dinámicamente).
-- business_impact: Explicación detallada de cómo estas pólizas impactan la operación y la rentabilidad del contratista (costo de primas, carga administrativa de constitución, renovaciones, etc.).
+### BLOQUE 7 — MOTOR DE DECISIÓN DE PÓLIZAS Y GARANTÍAS (policies_analysis)
+Actúa como un asesor financiero y contractual experto. Evalúa la aplicabilidad e impacto de pólizas de seguros y garantías para el contratista:
+- does_apply: Booleano (true/false) que indica si se requiere constituir pólizas o garantías para este tipo de contrato.
+- required_status: "Pólizas requeridas" si se exige la constitución de pólizas en el contrato (o si se sugiere por el contexto del negocio), o "Pólizas no requeridas" en caso contrario.
+- policies_list: Arreglo de exactamente 4 objetos que correspondan a estas pólizas estándar. Incluso si el contrato no las menciona explícitamente, debes sugerir/incluir su aplicabilidad con base en el contexto del contrato (ej. ejecución física de servicios -> Cumplimiento; riesgo de daños físicos -> RCE; anticipo de dinero -> Buen Manejo de Anticipo; entregables/desempeño técnico -> Calidad/Desempeño).
+  Cada objeto debe contener:
+  * name: Nombre de la póliza ("Póliza de Cumplimiento", "Póliza de Responsabilidad Civil Extracontractual", "Garantía de Calidad y Servicio (Performance)", "Garantía de Buen Manejo de Anticipo").
+  * applies: Booleano (true/false). Indica si aplica o es sugerida para este contrato específico.
+  * are_values_specified: Booleano (true/false) indicando si el contrato define explícitamente un monto o porcentaje de cobertura para esta póliza.
+  * value_details: Si are_values_specified es true, detalla el valor del contrato (ej. "10% del valor del contrato" o "200 SMMLV"). Si es false, escribe "Montos no especificados en el contrato".
+  * applies_when: Regla general de cuándo aplica esta póliza (ej. "Se aplica si existen obligaciones contractuales y ejecución de servicios").
+  * does_not_apply_when: Regla general de cuándo no aplica esta póliza (ej. "No requerido en contratos de suministro de bajo riesgo o única entrega").
+  * estimated_cost: Deja siempre la cadena literal "No calculable" (el backend calculará el costo real dinámicamente).
+  * why_applies: Justificación breve (máximo 2 oraciones) de por qué aplica o no aplica en este contrato específico según el contexto extraído.
+- business_impact: Objeto con el desglose del impacto comercial estructurado:
+  * cost_impact: Cómo afecta al costo operativo general (primas a pagar, etc.).
+  * profitability_impact: Cómo impacta directamente a la rentabilidad y al margen neto del contratista.
+  * management_effort: Esfuerzo administrativo de consecución, firmas y renovación de las garantías.
 
 ---
 
@@ -337,12 +347,25 @@ Devuelve únicamente un objeto JSON que coincida exactamente con la siguiente es
     "operational_requirements": "requisitos operativos"
   },
   "policies_analysis": {
-    "required_policies": "lista de pólizas o no definidas pero requeridas",
-    "are_values_specified": false,
-    "value_details": "detalle de montos o frase indicando que no están especificados",
-    "estimated_compliance_cost": "No calculable",
-    "estimated_liability_cost": "No calculable",
-    "business_impact": "explicación detallada de cómo afectan costos, rentabilidad y operación"
+    "does_apply": false,
+    "required_status": "Pólizas requeridas | Pólizas no requeridas",
+    "policies_list": [
+      {
+        "name": "Póliza de Cumplimiento",
+        "applies": false,
+        "are_values_specified": false,
+        "value_details": "detalle de montos o Montos no especificados en el contrato",
+        "applies_when": "condición general cuando aplica",
+        "does_not_apply_when": "condición general cuando no aplica",
+        "estimated_cost": "No calculable",
+        "why_applies": "explicación específica de aplicabilidad para este contrato"
+      }
+    ],
+    "business_impact": {
+      "cost_impact": "impacto en costos operativos",
+      "profitability_impact": "impacto en margen de ganancia",
+      "management_effort": "esfuerzo de gestión y renovación"
+    }
   },
   "decision": {
     "recommendation": "explicación del veredicto comercial en máximo 5 líneas",

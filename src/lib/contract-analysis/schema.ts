@@ -34,13 +34,26 @@ export interface ClauseImpact {
   risk_impact: string;
 }
 
-export interface PoliciesAnalysis {
-  required_policies: string;
+export interface PolicyDecision {
+  name: string;
+  applies: boolean;
   are_values_specified: boolean;
   value_details: string;
-  estimated_compliance_cost: string;
-  estimated_liability_cost: string;
-  business_impact: string;
+  applies_when: string;
+  does_not_apply_when: string;
+  estimated_cost: string;
+  why_applies: string;
+}
+
+export interface PoliciesAnalysis {
+  does_apply: boolean;
+  required_status: string;
+  policies_list: PolicyDecision[];
+  business_impact: {
+    cost_impact: string;
+    profitability_impact: string;
+    management_effort: string;
+  };
 }
 
 export interface ContractAnalysis {
@@ -114,12 +127,55 @@ const DEFAULT_ANALYSIS: ContractAnalysis = {
     minimum_value_required: "no especificado"
   },
   policies_analysis: {
-    required_policies: "no definidas pero requeridas",
-    are_values_specified: false,
-    value_details: "Montos no especificados en el contrato",
-    estimated_compliance_cost: "No calculable",
-    estimated_liability_cost: "No calculable",
-    business_impact: "Las pólizas representan un costo adicional que debe incluirse en el costo total del proyecto, afectando el margen final."
+    does_apply: false,
+    required_status: "no definidas pero requeridas",
+    policies_list: [
+      {
+        name: "Póliza de Cumplimiento",
+        applies: true,
+        are_values_specified: false,
+        value_details: "Montos no especificados en el contrato",
+        applies_when: "Se aplica si existen obligaciones contractuales y ejecución de servicios.",
+        does_not_apply_when: "No requerido en contratos de suministro de bajo riesgo o única entrega.",
+        estimated_cost: "No calculable",
+        why_applies: "Requerido por defecto en servicios contratados."
+      },
+      {
+        name: "Póliza de Responsabilidad Civil Extracontractual",
+        applies: true,
+        are_values_specified: false,
+        value_details: "Montos no especificados en el contrato",
+        applies_when: "Se aplica ante riesgos de daños a terceros o propiedad ajena durante la ejecución.",
+        does_not_apply_when: "No requerido en servicios intelectuales puros o consultorías de bajo riesgo físico.",
+        estimated_cost: "No calculable",
+        why_applies: "Requerido por el riesgo de daños durante la ejecución."
+      },
+      {
+        name: "Garantía de Calidad y Servicio (Performance)",
+        applies: true,
+        are_values_specified: false,
+        value_details: "Montos no especificados en el contrato",
+        applies_when: "Se aplica cuando existen obligaciones de desempeño a largo plazo y entregables técnicos.",
+        does_not_apply_when: "No aplica si el pago se realiza posterior a la entrega y aceptación final a satisfacción.",
+        estimated_cost: "No calculable",
+        why_applies: "Requerido por las obligaciones de desempeño y entregables."
+      },
+      {
+        name: "Garantía de Buen Manejo de Anticipo",
+        applies: false,
+        are_values_specified: false,
+        value_details: "Montos no especificados en el contrato",
+        applies_when: "Se aplica cuando el cliente realiza desembolsos de dinero por adelantado (anticipo) antes de ejecutar el servicio.",
+        does_not_apply_when: "No aplica si no hay pagos anticipados o si todo el pago es contra entrega.",
+        estimated_cost: "No aplica",
+        why_applies: "No se identificó entrega de anticipos."
+      }
+    ],
+    business_impact: {
+      cost_impact: "Las pólizas representan un costo adicional que debe incluirse en el presupuesto general.",
+      profitability_impact: "Reduce directamente el margen de ganancia neta del proyecto.",
+      management_effort: "Requiere gestiones de cotización, expedición y seguimiento administrativo de renovación."
+    }
   }
 };
 
@@ -241,14 +297,70 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
       conditions,
       minimum_value_required: stringField(decisionObj.minimum_value_required || decisionObj.valor_minimo_requerido || decisionObj.valor_minimo, 200) || "no especificado"
     },
-    policies_analysis: {
-      required_policies: stringField(rawPoliciesObj.required_policies || rawPoliciesObj.polizas_requeridas, 400) || "no definidas pero requeridas",
-      are_values_specified: Boolean(rawPoliciesObj.are_values_specified !== undefined ? rawPoliciesObj.are_values_specified : rawPoliciesObj.montos_especificados || false),
-      value_details: stringField(rawPoliciesObj.value_details || rawPoliciesObj.detalle_montos || rawPoliciesObj.detalles_valor, 500) || "Los montos de las pólizas no están especificados en el contrato",
-      estimated_compliance_cost: stringField(rawPoliciesObj.estimated_compliance_cost || rawPoliciesObj.costo_cumplimiento, 200) || "No calculable",
-      estimated_liability_cost: stringField(rawPoliciesObj.estimated_liability_cost || rawPoliciesObj.costo_responsabilidad, 200) || "No calculable",
-      business_impact: stringField(rawPoliciesObj.business_impact || rawPoliciesObj.impacto_negocio || rawPoliciesObj.impacto, 600) || "Las pólizas representan un costo adicional que debe incluirse en el costo total del proyecto, afectando el margen final."
-    }
+    policies_analysis: (() => {
+      const does_apply = rawPoliciesObj.does_apply !== undefined 
+        ? Boolean(rawPoliciesObj.does_apply) 
+        : (String(rawPoliciesObj.required_status || rawPoliciesObj.required_policies || "").toLowerCase().includes("requerid") || 
+           String(rawPoliciesObj.required_status || rawPoliciesObj.required_policies || "").toLowerCase().includes("sí") || 
+           String(rawPoliciesObj.required_status || rawPoliciesObj.required_policies || "").toLowerCase().includes("si") || 
+           String(rawPoliciesObj.does_apply || "").toLowerCase() === "true" ||
+           String(root.policies || "").toLowerCase() !== "no encontrado");
+
+      const required_status = stringField(
+        rawPoliciesObj.required_status || 
+        rawPoliciesObj.estado_requerido || 
+        (does_apply ? "Pólizas requeridas" : "Pólizas no requeridas"),
+        100
+      );
+
+      const rawPoliciesList = Array.isArray(rawPoliciesObj.policies_list || rawPoliciesObj.lista_polizas || rawPoliciesObj.policies)
+        ? (rawPoliciesObj.policies_list || rawPoliciesObj.lista_polizas || rawPoliciesObj.policies)
+        : [];
+
+      let policies_list: PolicyDecision[] = [];
+      if (Array.isArray(rawPoliciesList) && rawPoliciesList.length > 0) {
+        policies_list = rawPoliciesList.map((item, idx) => {
+          const rec = asRecord(item);
+          return {
+            name: stringField(rec.name || rec.nombre || rec.policy_type || rec.tipo, 150) || `Póliza ${idx + 1}`,
+            applies: rec.applies !== undefined ? Boolean(rec.applies) : Boolean(rec.aplica || false),
+            are_values_specified: rec.are_values_specified !== undefined ? Boolean(rec.are_values_specified) : Boolean(rec.montos_especificados || false),
+            value_details: stringField(rec.value_details || rec.detalle_montos || rec.detalles_valor || rec.valor, 500) || "No especificado en el contrato",
+            applies_when: stringField(rec.applies_when || rec.cuando_aplica || rec.condiciones_si, 500) || "",
+            does_not_apply_when: stringField(rec.does_not_apply_when || rec.cuando_no_aplica || rec.condiciones_no, 500) || "",
+            estimated_cost: stringField(rec.estimated_cost || rec.costo_estimado, 200) || "No calculable",
+            why_applies: stringField(rec.why_applies || rec.porque_aplica || rec.explicacion, 400) || ""
+          };
+        });
+      } else {
+        policies_list = DEFAULT_ANALYSIS.policies_analysis.policies_list.map(p => ({ ...p }));
+      }
+
+      // Rellenar las reglas por defecto para la aplicabilidad si vienen vacías
+      policies_list = policies_list.map(p => {
+        const nameLower = p.name.toLowerCase();
+        const defPolicy = DEFAULT_ANALYSIS.policies_analysis.policies_list.find(dp => dp.name.toLowerCase().includes(nameLower) || nameLower.includes(dp.name.toLowerCase()));
+        return {
+          ...p,
+          applies_when: p.applies_when || defPolicy?.applies_when || "Se aplica bajo requerimiento del cliente o ejecución de hitos.",
+          does_not_apply_when: p.does_not_apply_when || defPolicy?.does_not_apply_when || "No aplica si es exceptuado formalmente por mutuo acuerdo."
+        };
+      });
+
+      const rawImpact = asRecord(rawPoliciesObj.business_impact || rawPoliciesObj.impacto_negocio || rawPoliciesObj.impacto);
+      const business_impact = {
+        cost_impact: stringField(rawImpact.cost_impact || rawImpact.impacto_costos || rawPoliciesObj.business_impact || rawPoliciesObj.impacto || "", 500) || DEFAULT_ANALYSIS.policies_analysis.business_impact.cost_impact,
+        profitability_impact: stringField(rawImpact.profitability_impact || rawImpact.impacto_rentabilidad || "", 500) || DEFAULT_ANALYSIS.policies_analysis.business_impact.profitability_impact,
+        management_effort: stringField(rawImpact.management_effort || rawImpact.esfuerzo_gestion || rawImpact.gestion || "", 500) || DEFAULT_ANALYSIS.policies_analysis.business_impact.management_effort
+      };
+
+      return {
+        does_apply,
+        required_status,
+        policies_list,
+        business_impact
+      };
+    })()
   };
 }
 

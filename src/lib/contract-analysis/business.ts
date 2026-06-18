@@ -82,35 +82,59 @@ export function enforceBusinessRules(
   // --- INSURANCE & GUARANTEES ANALYSIS (PÓLIZAS) ---
   const parsedVal = parseNumberLike(next.data.value);
   const currency = next.data.currency !== "no encontrado" ? next.data.currency : "USD";
-  
-  if (parsedVal !== null && parsedVal > 0) {
-    const complianceCost = parsedVal * 0.1;
-    let liabilityRate = 0.015; // default 1.5% for low risk
-    if (next.analysis.risk.val === "alto") {
-      liabilityRate = 0.05;
-    } else if (next.analysis.risk.val === "medio") {
-      liabilityRate = 0.03;
+
+  let liabilityRate = 0.015; // default 1.5% for low risk
+  if (next.analysis.risk.val === "alto") {
+    liabilityRate = 0.05;
+  } else if (next.analysis.risk.val === "medio") {
+    liabilityRate = 0.03;
+  }
+
+  const complianceCost = parsedVal !== null && parsedVal > 0 ? parsedVal * 0.1 : 0;
+  const liabilityCost = parsedVal !== null && parsedVal > 0 ? parsedVal * liabilityRate : 0;
+  const performanceCost = parsedVal !== null && parsedVal > 0 ? parsedVal * 0.02 : 0;
+  const advanceCost = parsedVal !== null && parsedVal > 0 ? parsedVal * 0.05 : 0;
+
+  // Actualizar costos estimados en la lista
+  next.policies_analysis.policies_list.forEach((policy) => {
+    const nameLower = policy.name.toLowerCase();
+    if (!policy.applies) {
+      policy.estimated_cost = "No aplica";
+      return;
     }
-    const liabilityCost = parsedVal * liabilityRate;
-    
-    next.policies_analysis.estimated_compliance_cost = `${complianceCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}`;
-    next.policies_analysis.estimated_liability_cost = `${liabilityCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}`;
-    
-    if (next.data.policies && next.data.policies !== "no encontrado") {
+
+    if (parsedVal === null || parsedVal <= 0) {
+      policy.estimated_cost = "No calculable (valor no disponible)";
+      return;
+    }
+
+    if (nameLower.includes("cumplimiento") || nameLower.includes("compliance")) {
+      policy.estimated_cost = `${complianceCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}`;
+    } else if (nameLower.includes("responsabilidad") || nameLower.includes("liability") || nameLower.includes("civil") || nameLower.includes("rce")) {
+      policy.estimated_cost = `${liabilityCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}`;
+    } else if (nameLower.includes("calidad") || nameLower.includes("desempeño") || nameLower.includes("performance") || nameLower.includes("servicio")) {
+      policy.estimated_cost = `${performanceCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}`;
+    } else if (nameLower.includes("anticipo") || nameLower.includes("advance")) {
+      policy.estimated_cost = `${advanceCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}`;
+    } else {
+      const fallbackCost = parsedVal * 0.02;
+      policy.estimated_cost = `${fallbackCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}`;
+    }
+  });
+
+  // Integración de costos de pólizas en la rentabilidad
+  const activePolicies = next.policies_analysis.policies_list.filter(p => p.applies);
+  if (activePolicies.length > 0 && next.policies_analysis.does_apply) {
+    if (parsedVal !== null && parsedVal > 0) {
       const totalPolicyCost = complianceCost + liabilityCost;
       const totalRatePercent = (0.1 + liabilityRate) * 100;
-      
+
       next.analysis.profitability.val = downgradeProfitability(next.analysis.profitability.val);
       next.analysis.profitability.reason = `El costo estimado de pólizas de ${totalPolicyCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency} (${totalRatePercent.toFixed(1)}% del contrato) reduce la rentabilidad neta.`;
-      
+
       issues.add(`Los costos estimados de pólizas y garantías representan un cargo del ${totalRatePercent.toFixed(1)}% del valor del contrato.`);
       conditions.add(`Incluir en el presupuesto general un costo de primas de pólizas estimado en ${totalPolicyCost.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}.`);
-    }
-  } else {
-    next.policies_analysis.estimated_compliance_cost = "No determinable (valor de contrato no disponible)";
-    next.policies_analysis.estimated_liability_cost = "No determinable (valor de contrato no disponible)";
-    
-    if (next.data.policies && next.data.policies !== "no encontrado") {
+    } else {
       next.analysis.profitability.val = downgradeProfitability(next.analysis.profitability.val);
       next.analysis.profitability.reason = "Se requieren pólizas contractuales, lo cual representa un costo adicional no cuantificado por falta de valor base.";
       issues.add("El contrato exige constitución de pólizas, pero no hay un valor base definido para estimar costos.");
@@ -367,6 +391,11 @@ function cloneContractAnalysis(contract: ContractAnalysis): ContractAnalysis {
       conditions: [...contract.decision.conditions],
       minimum_value_required: contract.decision.minimum_value_required
     },
-    policies_analysis: { ...contract.policies_analysis }
+    policies_analysis: {
+      does_apply: contract.policies_analysis.does_apply,
+      required_status: contract.policies_analysis.required_status,
+      policies_list: contract.policies_analysis.policies_list.map((p) => ({ ...p })),
+      business_impact: { ...contract.policies_analysis.business_impact }
+    }
   };
 }

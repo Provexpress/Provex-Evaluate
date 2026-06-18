@@ -2132,95 +2132,140 @@
   flex-direction: column;
 }
 
-.px-policies-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--px-space-6);
+.px-policies-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-lg);
+  margin-top: var(--px-space-4);
   margin-bottom: var(--px-space-4);
+  background: var(--px-surface);
 }
 
-.px-policy-block {
+.px-policies-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--px-text-sm);
+}
+
+.px-policies-table th {
+  background: var(--px-gray-50);
+  color: var(--px-text-strong);
+  font-weight: var(--px-weight-bold);
+  padding: var(--px-space-3) var(--px-space-4);
+  border-bottom: 1px solid var(--px-border);
+  font-size: var(--px-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.px-policies-table td {
+  padding: var(--px-space-4);
+  border-bottom: 1px solid var(--px-border);
+  vertical-align: top;
+  color: var(--px-text-normal);
+}
+
+.px-policy-row--inactive {
+  opacity: 0.65;
+  background: var(--px-gray-50) !important;
+}
+
+.px-policy-row--applies {
+  background: var(--px-surface);
+}
+
+.px-policy-name-cell {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--px-space-2);
+}
+
+.px-policy-icon {
+  font-size: 1.1rem;
+}
+
+.px-policy-cost-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--px-space-1);
+}
+
+.px-policy-cost-val {
+  font-weight: var(--px-weight-bold);
+  color: var(--px-text-strong);
+}
+
+.px-policy-cost-desc {
+  font-size: var(--px-text-xs);
+  color: var(--px-muted);
+}
+
+.px-policy-applicability-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--px-space-1.5);
+  font-size: var(--px-text-xs);
+}
+
+.px-applies-yes, .px-applies-no {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--px-space-1);
+  line-height: 1.4;
+}
+
+.px-policy-diagnosis-text {
+  font-size: var(--px-text-xs);
+  color: var(--px-muted);
+  line-height: 1.4;
+  display: block;
+}
+
+.px-policies-impact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--px-space-4);
+  margin-top: var(--px-space-4);
+}
+
+.px-policy-impact-item {
+  background: var(--px-gray-50);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-lg);
+  padding: var(--px-space-4);
   display: flex;
   flex-direction: column;
   gap: var(--px-space-2);
 }
 
-.px-policy-block__label {
-  font-size: var(--px-text-xs);
-  color: var(--px-muted);
-  font-weight: var(--px-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.px-policy-impact-header {
+  display: flex;
+  align-items: center;
+  gap: var(--px-space-2);
 }
 
-.px-policy-block__text {
-  margin: 0;
+.px-policy-impact-icon {
+  font-size: 1.25rem;
+}
+
+.px-policy-impact-title {
+  font-weight: var(--px-weight-bold);
   font-size: var(--px-text-sm);
   color: var(--px-text-strong);
-  font-weight: var(--px-weight-medium);
-  line-height: 1.45;
 }
 
-.px-policy-block--estimate {
-  background: var(--px-surface-raised);
-  border: 1px solid var(--px-border);
-  border-radius: var(--px-radius-lg);
-  padding: var(--px-space-4);
-}
-
-.px-policy-estimate-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--px-space-4);
-  font-size: var(--px-text-xs);
-}
-
-.px-policy-estimate-name {
-  color: var(--px-text-soft);
-  font-weight: var(--px-weight-medium);
-}
-
-.px-policy-estimate-value {
-  font-family: var(--px-font-data);
-  font-weight: var(--px-weight-bold);
-  color: var(--px-text-strong);
-}
-
-.px-policy-impact {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--px-space-3);
-  padding: var(--px-space-4);
-  background: rgba(106, 63, 160, 0.04);
-  border-radius: var(--px-radius-lg);
-  border-left: 4px solid var(--px-purple);
-  margin-top: var(--px-space-4);
-}
-
-.px-policy-impact__icon {
-  font-size: var(--px-text-base);
-  line-height: 1;
-}
-
-.px-policy-impact__content {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.px-policy-impact__label {
-  font-size: var(--px-text-xs);
-  color: var(--px-purple);
-  font-weight: var(--px-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.px-policy-impact__text {
+.px-policy-impact-text {
   margin: 0;
   font-size: var(--px-text-xs);
-  color: var(--px-text-soft);
-  line-height: 1.4;
+  color: var(--px-text-normal);
+  line-height: 1.5;
+}
+
+@media (max-width: 960px) {
+  .px-policies-impact-grid {
+    grid-template-columns: 1fr;
+    gap: var(--px-space-3);
+  }
 }
 
