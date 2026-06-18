@@ -25,10 +25,13 @@ export interface BillingConditions {
 }
 
 export interface ClauseImpact {
+  clause_number: number;
   clause: string;
   detail: string;
-  business_impact: string;
   severity: Severity;
+  financial_impact: string;
+  operational_impact: string;
+  risk_impact: string;
 }
 
 export interface ContractAnalysis {
@@ -166,16 +169,21 @@ export function normalizeContractAnalysis(input: unknown): ContractAnalysis {
     cash_flow_impact: stringField(rawBillingObj.cash_flow_impact || rawBillingObj.impacto_flujo_caja || rawBillingObj.impacto, 400) || "no encontrado"
   };
 
-  // Normalizar Impacto de Cláusulas
+  // Normalizar Impacto de Cláusulas (nuevo formato extendido)
   let clause_impacts: ClauseImpact[] = [];
   if (Array.isArray(rawClauseImpacts)) {
-    clause_impacts = rawClauseImpacts.map((item) => {
+    clause_impacts = rawClauseImpacts.map((item, idx) => {
       const rec = asRecord(item);
+      // Soportar formato nuevo (impactos separados) y formato legado (business_impact unificado)
+      const legacyImpact = stringField(rec.business_impact || rec.impacto_negocio || rec.impacto, 600);
       return {
-        clause: stringField(rec.clause || rec.clausula || rec.nombre, 100) || "Cláusula no identificada",
-        detail: stringField(rec.detail || rec.detalle || rec.texto, 600) || "no encontrado",
-        business_impact: stringField(rec.business_impact || rec.impacto_negocio || rec.impacto, 600) || "no encontrado",
-        severity: normalizeSeverity(rec.severity || rec.gravedad || rec.severidad)
+        clause_number: typeof rec.clause_number === "number" ? rec.clause_number : idx + 1,
+        clause: stringField(rec.clause || rec.clausula || rec.nombre, 120) || "Cláusula no identificada",
+        detail: stringField(rec.detail || rec.detalle || rec.texto, 500) || "no encontrado",
+        severity: normalizeSeverity(rec.severity || rec.gravedad || rec.severidad),
+        financial_impact: stringField(rec.financial_impact || rec.impacto_financiero, 400) || legacyImpact || "no especificado",
+        operational_impact: stringField(rec.operational_impact || rec.impacto_operacional, 400) || "no especificado",
+        risk_impact: stringField(rec.risk_impact || rec.impacto_riesgo, 400) || "no especificado"
       };
     });
   }

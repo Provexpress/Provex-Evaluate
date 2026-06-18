@@ -222,12 +222,30 @@ Extrae los siguientes detalles de cobro:
 ---
 
 ### BLOQUE 5 — MOTOR DE IMPACTO DE CLÁUSULAS (clause_impacts)
-Construye un arreglo de objetos para las cláusulas críticas (Penalidades, Terminación, Pólizas). Tradúcelas a su impacto en el negocio:
-Cada objeto del arreglo debe tener:
-- clause: Nombre de la cláusula analizada (ej: "Penalidades", "Terminación" o "Pólizas y Garantías").
-- detail: Obligación contractual exacta extraída (resumen corto).
-- business_impact: Traducción del impacto comercial real. Asocia Penalidades con afectación a rentabilidad, Pólizas con incremento de costos operativos directos, y Terminación unilateral con riesgos de continuidad comercial.
-- severity: Severidad del impacto: "alta" | "media" | "baja".
+Analiza el contrato CLÁUSULA POR CLÁUSULA de forma individual. Identifica entre 5 y 10 cláusulas relevantes (no las agrupe, una por objeto en el array).
+
+Foco obligatorio en estas catáategoras:
+- Condiciones de pago / plazos
+- Penalidades / multas
+- Terminación anticipada (unilateral o bilateral)
+- Obligaciones del contratista
+- Pólizas y garantías requeridas
+- Interventoría / supervisión
+- Modificaciones y adendas
+- Propiedad intelectual o confidencialidad (si aplica)
+- Ajuste de precios o revisiones de tarifa
+- Resp. civil extracontractual o indemnizaciones
+
+Cada objeto del arreglo DEBE tener:
+- clause_number: número secuencial (1, 2, 3...)
+- clause: Nombre corto de la cláusula (ej: "Terminación Anticipada", "Plóiza de Cumplimiento").
+- detail: Qué dice exactamente la cláusula — texto simplificado, máximo 2-3 oraciones.
+- severity: Severidad para el PROVEEDOR: "alta" | "media" | "baja".
+- financial_impact: Impacto directo en dinero o rentabilidad (ej: "Puede reducir el margen en un 10% si hay retrasos").
+- operational_impact: Impacto en operaciones o ejecución del servicio (ej: "Requiere interventor activo, agrega carga documental").
+- risk_impact: Riesgo contractual o legal (ej: "Permite terminación unilateral sin compensación").
+
+REGLA CLAVE: Conecta siempre la cláusula → consecuencia real en el negocio del proveedor. El gerente debe entender POR QUÉ importa.
 
 ---
 
@@ -291,10 +309,13 @@ Devuelve únicamente un objeto JSON que coincida exactamente con la siguiente es
   },
   "clause_impacts": [
     {
-      "clause": "nombre de la cláusula",
-      "detail": "detalle contractual extraído",
-      "business_impact": "impacto real en el negocio",
-      "severity": "alta | media | baja"
+      "clause_number": 1,
+      "clause": "Nombre corto de la cláusula",
+      "detail": "Qué dice exactamente la cláusula (simplificado)",
+      "severity": "alta | media | baja",
+      "financial_impact": "Impacto directo en dinero o rentabilidad",
+      "operational_impact": "Impacto en operaciones o ejecución del servicio",
+      "risk_impact": "Riesgo contractual o legal para el proveedor"
     }
   ],
   "factors_to_sign": {

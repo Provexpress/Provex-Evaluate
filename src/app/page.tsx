@@ -9,11 +9,6 @@ const decisionClassMap: Record<string, string> = {
   no_recomendado_sin_validacion: "do_not_sign"
 };
 
-const severityColorMap: Record<string, string> = {
-  alta: "var(--px-red)",
-  media: "var(--px-amber)",
-  baja: "var(--px-blue)"
-};
 
 export default function Home() {
   // Estado del archivo de contrato y arrastre
@@ -35,6 +30,29 @@ export default function Home() {
   const [statusIndex, setStatusIndex] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<ContractAnalysis | null>(null);
+
+  // Estado para acordeón de cláusulas analizadas
+  const [expandedClauses, setExpandedClauses] = useState<Record<number, boolean>>({});
+
+  const toggleClause = (idx: number) => {
+    setExpandedClauses((prev) => ({
+      ...prev,
+      [idx]: !prev[idx],
+    }));
+  };
+
+  const expandAllClauses = (clausesCount: number) => {
+    const nextState: Record<number, boolean> = {};
+    for (let i = 0; i < clausesCount; i++) {
+      nextState[i] = true;
+    }
+    setExpandedClauses(nextState);
+  };
+
+  const collapseAllClauses = () => {
+    setExpandedClauses({});
+  };
+
 
   const loadingStatuses = [
     "Leyendo el archivo PDF del contrato...",
@@ -277,153 +295,172 @@ export default function Home() {
       {/* Estructura Workbench (Sidebar + Dashboard) */}
       <div className="px-workbench">
         {/* Panel lateral con carga de archivo y parámetros */}
-        <aside className="px-panel px-stack" style={{ gap: "var(--px-space-4)" }}>
-          <div className="px-field">
-            <p className="px-eyebrow">1. Documentos</p>
-            <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-md)", margin: "0" }}>Origen del Contrato</h2>
-          </div>
+        <aside className="px-sidebar px-anim-enter">
 
-          {/* Carga del Contrato */}
-          <div className="px-field">
-            <label className="px-label">Contrato Principal (PDF)</label>
-            {!file ? (
-              <div
-                className={`px-upload-zone ${dragActive ? "drag-over" : ""}`}
-                onDragEnter={handleDrag}
-                onDragOver={handleDrag}
-                onDragLeave={handleDrag}
-                onDrop={handleDrop}
-                onClick={triggerFileSelect}
-              >
-                <div className="px-upload-icon-circle">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                </div>
-                <p className="px-upload-title">Subir Contrato PDF</p>
-                <p className="px-upload-subtitle">Arrastra o haz clic aquí</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf"
-                  style={{ display: "none" }}
-                  onChange={handleFileChange}
-                />
+          {/* ── SECCIÓN 1: DOCUMENTOS ── */}
+          <div className="px-sidebar-section">
+            <div className="px-sidebar-section-header">
+              <span className="px-sidebar-step">01</span>
+              <div>
+                <p className="px-sidebar-label">Documentos</p>
+                <h2 className="px-sidebar-title">Origen del Contrato</h2>
               </div>
-            ) : (
-              <div className="px-file-card">
-                <div className="px-file-icon">PDF</div>
-                <div className="px-file-info">
-                  <p className="px-file-name" title={file.name}>{file.name}</p>
-                  <p className="px-file-size">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
-                </div>
-                <button className="px-btn px-btn--ghost px-btn--sm px-btn--icon" onClick={removeFile} disabled={isLoading} title="Eliminar contrato">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Carga de la Orden de Compra (Opcional) */}
-          <div className="px-field">
-            <label className="px-label">Orden de Compra Adjunta (PDF - Opcional)</label>
-            {!purchaseOrderFile ? (
-              <div
-                className={`px-upload-zone ${poDragActive ? "drag-over" : ""}`}
-                onDragEnter={handlePoDrag}
-                onDragOver={handlePoDrag}
-                onDragLeave={handlePoDrag}
-                onDrop={handlePoDrop}
-                onClick={triggerPoFileSelect}
-                style={{ padding: "var(--px-space-4) var(--px-space-3)", minHeight: "100px" }}
-              >
-                <div className="px-upload-icon-circle" style={{ width: "36px", height: "36px" }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="12" y1="18" x2="12" y2="12" />
-                    <line x1="9" y1="15" x2="15" y2="15" />
-                  </svg>
-                </div>
-                <p className="px-upload-title" style={{ fontSize: "var(--px-text-sm)" }}>Subir Orden de Compra</p>
-                <input
-                  ref={poInputRef}
-                  type="file"
-                  accept=".pdf"
-                  style={{ display: "none" }}
-                  onChange={handlePoFileChange}
-                />
-              </div>
-            ) : (
-              <div className="px-file-card" style={{ borderStyle: "dashed" }}>
-                <div className="px-file-icon" style={{ backgroundColor: "rgba(106, 63, 160, 0.1)", color: "var(--px-purple)" }}>O/C</div>
-                <div className="px-file-info">
-                  <p className="px-file-name" title={purchaseOrderFile.name}>{purchaseOrderFile.name}</p>
-                  <p className="px-file-size">{(purchaseOrderFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-                </div>
-                <button className="px-btn px-btn--ghost px-btn--sm px-btn--icon" onClick={removePoFile} disabled={isLoading} title="Eliminar orden de compra">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Parámetros de Viabilidad Financiera */}
-          <div className="px-field" style={{ marginTop: "var(--px-space-2)" }}>
-            <p className="px-eyebrow">2. Parámetros del Negocio</p>
-            <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-md)", margin: "0" }}>Viabilidad Financiera</h2>
-          </div>
-
-          <div className="px-field">
-            <label className="px-label">Costo Estimado (USD)</label>
-            <div className="px-input-prefixed-wrapper">
-              <span className="px-input-prefix">$</span>
-              <input
-                type="text"
-                className="px-input"
-                placeholder="Ej. 50000"
-                value={estimatedCost}
-                onChange={(e) => setEstimatedCost(e.target.value)}
-                disabled={isLoading}
-              />
             </div>
-            <p className="px-help">Costo proyectado para ejecutar el proyecto</p>
+
+            {/* Contrato */}
+            <div className="px-field">
+              <label className="px-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display:"inline", marginRight:"5px", verticalAlign:"middle" }}>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                </svg>
+                Contrato Principal (PDF)
+              </label>
+              {!file ? (
+                <div
+                  className={`px-upload-zone ${dragActive ? "drag-over" : ""}`}
+                  onDragEnter={handleDrag}
+                  onDragOver={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={triggerFileSelect}
+                >
+                  <div className="px-upload-icon-circle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  </div>
+                  <p className="px-upload-title">Subir Contrato PDF</p>
+                  <p className="px-upload-subtitle">Arrastra o haz clic aquí</p>
+                  <input ref={fileInputRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handleFileChange} />
+                </div>
+              ) : (
+                <div className="px-file-card">
+                  <div className="px-file-icon">PDF</div>
+                  <div className="px-file-info">
+                    <p className="px-file-name" title={file.name}>{file.name}</p>
+                    <p className="px-file-size">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  </div>
+                  <button className="px-btn px-btn--ghost px-btn--sm px-btn--icon" onClick={removeFile} disabled={isLoading} title="Eliminar contrato">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Orden de Compra */}
+            <div className="px-field">
+              <label className="px-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display:"inline", marginRight:"5px", verticalAlign:"middle" }}>
+                  <rect x="5" y="2" width="14" height="20" rx="2" />
+                  <line x1="9" y1="9" x2="15" y2="9" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="12" y2="17" />
+                </svg>
+                Orden de Compra
+                <span style={{ fontWeight:"normal", color:"var(--px-muted-2)", textTransform:"none", letterSpacing:0, marginLeft:"4px", fontSize:"0.7rem" }}>— Opcional</span>
+              </label>
+              {!purchaseOrderFile ? (
+                <div
+                  className={`px-upload-zone ${poDragActive ? "drag-over" : ""}`}
+                  onDragEnter={handlePoDrag}
+                  onDragOver={handlePoDrag}
+                  onDragLeave={handlePoDrag}
+                  onDrop={handlePoDrop}
+                  onClick={triggerPoFileSelect}
+                  style={{ padding: "var(--px-space-4) var(--px-space-3)", minHeight: "100px" }}
+                >
+                  <div className="px-upload-icon-circle" style={{ width:"36px", height:"36px", background:"rgba(106,63,160,0.10)", color:"var(--px-purple)" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="12" y1="18" x2="12" y2="12" /><line x1="9" y1="15" x2="15" y2="15" />
+                    </svg>
+                  </div>
+                  <p className="px-upload-title" style={{ fontSize:"var(--px-text-sm)" }}>Subir Orden de Compra</p>
+                  <p className="px-upload-subtitle">Si el contrato no incluye valor económico</p>
+                  <input ref={poInputRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={handlePoFileChange} />
+                </div>
+              ) : (
+                <div className="px-file-card" style={{ borderStyle:"dashed" }}>
+                  <div className="px-file-icon" style={{ backgroundColor:"rgba(106,63,160,0.12)", color:"var(--px-purple)" }}>O/C</div>
+                  <div className="px-file-info">
+                    <p className="px-file-name" title={purchaseOrderFile.name}>{purchaseOrderFile.name}</p>
+                    <p className="px-file-size">{(purchaseOrderFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                  </div>
+                  <button className="px-btn px-btn--ghost px-btn--sm px-btn--icon" onClick={removePoFile} disabled={isLoading} title="Eliminar orden de compra">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="px-field">
-            <label className="px-label">Margen Objetivo (%)</label>
-            <input
-              type="text"
-              className="px-input"
-              placeholder="Ej. 25"
-              value={expectedMargin}
-              onChange={(e) => setExpectedMargin(e.target.value)}
-              disabled={isLoading}
-            />
-            <p className="px-help">Margen comercial requerido para firma</p>
+          {/* ── DIVIDER ── */}
+          <div className="px-sidebar-divider"></div>
+
+          {/* ── SECCIÓN 2: PARÁMETROS FINANCIEROS ── */}
+          <div className="px-sidebar-section">
+            <div className="px-sidebar-section-header">
+              <span className="px-sidebar-step px-sidebar-step--purple">02</span>
+              <div>
+                <p className="px-sidebar-label">Parámetros del Negocio</p>
+                <h2 className="px-sidebar-title">Viabilidad Financiera</h2>
+              </div>
+            </div>
+
+            <div className="px-field">
+              <label className="px-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display:"inline", marginRight:"5px", verticalAlign:"middle" }}>
+                  <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                Costo Estimado (USD)
+              </label>
+              <div className="px-input-prefixed-wrapper">
+                <span className="px-input-prefix">$</span>
+                <input type="text" className="px-input" placeholder="Ej. 50000" value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} disabled={isLoading} />
+              </div>
+              <p className="px-help">Costo proyectado para ejecutar el proyecto</p>
+            </div>
+
+            <div className="px-field">
+              <label className="px-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ display:"inline", marginRight:"5px", verticalAlign:"middle" }}>
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" />
+                </svg>
+                Margen Objetivo (%)
+              </label>
+              <div className="px-input-prefixed-wrapper">
+                <span className="px-input-prefix" style={{ fontFamily:"var(--px-font-data)", fontSize:"0.75rem" }}>%</span>
+                <input type="text" className="px-input" placeholder="Ej. 25" value={expectedMargin} onChange={(e) => setExpectedMargin(e.target.value)} disabled={isLoading} />
+              </div>
+              <p className="px-help">Margen comercial requerido para firma</p>
+            </div>
           </div>
 
+          {/* ── DIVIDER + CTA ── */}
           {file && !analysis && (
-            <button
-              className="px-btn px-btn--primary px-mt-4"
-              onClick={handleAnalyze}
-              disabled={isLoading}
-              style={{ width: "100%", marginTop: "var(--px-space-4)" }}
-            >
-              <span>Evaluar Riesgo Comercial</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </button>
+            <>
+              <div className="px-sidebar-divider"></div>
+              <div className="px-sidebar-cta">
+                <button
+                  className="px-btn px-btn--primary"
+                  onClick={handleAnalyze}
+                  disabled={isLoading}
+                  style={{ width:"100%", minHeight:"50px", fontSize:"var(--px-text-base)", borderRadius:"var(--px-radius-lg)" }}
+                >
+                  <span>Evaluar Riesgo Comercial</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </button>
+                <p className="px-sidebar-hint">⚡ Análisis en ~20 segundos con IA</p>
+              </div>
+            </>
           )}
         </aside>
 
@@ -440,9 +477,16 @@ export default function Home() {
           {/* Pantalla de Carga */}
           {isLoading && (
             <div className="px-panel px-loader-wrapper">
-              <div className="px-loader-spinner"></div>
+              <div className="px-loader-spinner">
+                <div className="px-loader-ring-inner"></div>
+              </div>
               <h3 className="px-loader-title">Analizando cláusulas del contrato...</h3>
               <p className="px-loader-subtitle">{loadingStatuses[statusIndex]}</p>
+              <div className="px-loader-dots">
+                <div className="px-loader-dot"></div>
+                <div className="px-loader-dot"></div>
+                <div className="px-loader-dot"></div>
+              </div>
             </div>
           )}
 
@@ -450,23 +494,23 @@ export default function Home() {
           {!isLoading && !analysis && (
             <div className="px-panel px-empty-view">
               <div className="px-empty-icon">⚖️</div>
-              <h2 className="px-title" style={{ fontSize: "var(--px-text-panel)", marginBottom: "var(--px-space-2)" }}>Centro de Decisiones y Riesgos Comerciales</h2>
-              <p className="px-copy" style={{ margin: "0" }}>
+              <h2 className="px-title" style={{ fontFamily: "var(--px-font-display)", fontSize: "var(--px-text-panel)", marginBottom: "var(--px-space-2)" }}>Centro de Decisiones y Riesgos Comerciales</h2>
+              <p className="px-copy" style={{ margin: "0", lineHeight: 1.65 }}>
                 Sube un contrato de servicios en formato PDF. El motor financiero y comercial de IA auditará los plazos de pago, multas, pólizas, indemnizaciones y terminaciones unilaterales para entregar una decisión automática.
               </p>
               
               <div className="px-features-row">
-                <div className="px-feature-box">
+                <div className="px-feature-box px-anim-enter px-anim-enter--1">
                   <p className="px-feature-num">01</p>
                   <h4 className="px-feature-title">Validar Liquidez</h4>
                   <p className="px-feature-desc">Evalúa plazos de pago, dependencias de firmas y riesgos en el flujo de caja.</p>
                 </div>
-                <div className="px-feature-box">
+                <div className="px-feature-box px-anim-enter px-anim-enter--2">
                   <p className="px-feature-num">02</p>
                   <h4 className="px-feature-title">Auditar Alertas</h4>
                   <p className="px-feature-desc">Detecta penalidades excesivas, pólizas requeridas y cláusulas unilaterales.</p>
                 </div>
-                <div className="px-feature-box">
+                <div className="px-feature-box px-anim-enter px-anim-enter--3">
                   <p className="px-feature-num">03</p>
                   <h4 className="px-feature-title">Veredicto de Viabilidad</h4>
                   <p className="px-feature-desc">Obtén una recomendación clara sobre la viabilidad y conveniencia de firmar el acuerdo.</p>
@@ -477,241 +521,286 @@ export default function Home() {
 
           {/* Tablero de Decisiones y Resultados */}
           {!isLoading && analysis && (
-            <div className="px-stack" style={{ gap: "var(--px-space-4)" }}>
+            <div className="px-results-stack" style={{ display: "flex", flexDirection: "column", gap: "var(--px-space-6)" }}>
               
-              {/* BLOQUE FINAL — DECISIÓN */}
-              <div className={`px-decision-alert px-decision-alert--${decisionClassMap[analysis.decision.type] || "conditional"}`}>
-                
-                {/* Badge destacando si los datos financieros vinieron de la Orden de Compra */}
+              {/* 🔴 1. HERO DECISION (TOP) */}
+              <div className={`px-hero-decision px-hero-decision--${decisionClassMap[analysis.decision.type] || "conditional"} px-anim-enter`}>
                 {analysis.data.financials_from_po && (
-                  <div style={{ display: "inline-flex", marginBottom: "var(--px-space-2.5)" }}>
+                  <div style={{ display: "inline-flex", marginBottom: "var(--px-space-2)" }}>
                     <span className="px-badge px-badge--success" style={{ textTransform: "none", fontSize: "var(--px-text-xs)" }}>
                       💡 Datos financieros extraídos de la Orden de Compra
                     </span>
                   </div>
                 )}
-
-                <div className="px-decision-header">
-                  <div className="px-decision-icon">
+                
+                <div className="px-hero-decision__header">
+                  <div className="px-hero-decision__icon">
                     {analysis.decision.type === "firmar" && "✅"}
                     {analysis.decision.type === "firmar_con_condiciones" && "⚠️"}
                     {analysis.decision.type === "no_recomendado_sin_validacion" && "❌"}
                   </div>
-                  <div className="px-decision-text">
-                    <p className="px-eyebrow" style={{ color: "inherit", margin: "0", opacity: 0.85 }}>Recomendación de Viabilidad</p>
-                    <h3 className="px-decision-title">
+                  <div>
+                    <span className="px-hero-decision__eyebrow">Recomendación Directiva</span>
+                    <h2 className="px-hero-decision__title">
                       {analysis.decision.type === "firmar" && "APROBADO PARA FIRMAR"}
                       {analysis.decision.type === "firmar_con_condiciones" && "FIRMAR CON CONDICIONES"}
                       {analysis.decision.type === "no_recomendado_sin_validacion" && "NO RECOMENDADO SIN VALIDACIÓN"}
-                    </h3>
+                    </h2>
                   </div>
                 </div>
-                <p className="px-decision-reason">{analysis.decision.recommendation}</p>
 
-                {/* Condiciones para Aprobar (Lista estructurada de viñetas) */}
+                <p className="px-hero-decision__explanation">
+                  {analysis.decision.recommendation}
+                </p>
+
                 {analysis.decision.conditions && analysis.decision.conditions.length > 0 && (
-                  <div style={{ marginTop: "var(--px-space-4)", padding: "var(--px-space-4)", borderRadius: "var(--px-radius-md)", background: "rgba(255, 255, 255, 0.4)", border: "1px dashed var(--px-amber)" }}>
-                    <strong style={{ fontSize: "var(--px-text-sm)", color: "#92400E", textTransform: "uppercase", letterSpacing: "0.05em" }}>Condiciones para Aprobar:</strong>
-                    <ul style={{ margin: "var(--px-space-2) 0 0 0", paddingLeft: "var(--px-space-4)", fontSize: "var(--px-text-md)", color: "#92400E", display: "flex", flexDirection: "column", gap: "var(--px-space-1)" }}>
+                  <div className="px-hero-decision__conditions">
+                    <h4 className="px-hero-decision__conditions-title">Condiciones para aprobar:</h4>
+                    <ul className="px-hero-decision__conditions-list">
                       {analysis.decision.conditions.map((cond: string, idx: number) => (
-                        <li key={idx}>{cond}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Si se calculó el valor mínimo requerido, lo mostramos */}
-                {analysis.decision.minimum_value_required && analysis.decision.minimum_value_required !== "no especificado" && (
-                  <div style={{ marginTop: "var(--px-space-3)", padding: "var(--px-space-3)", borderRadius: "var(--px-radius-md)", background: "rgba(255, 255, 255, 0.4)", border: "1px dashed var(--px-blue)" }}>
-                    <strong style={{ fontSize: "var(--px-text-sm)", color: "var(--px-text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Valor mínimo requerido calculado:</strong>
-                    <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-base)", fontFamily: "var(--px-font-data)", fontWeight: "bold", color: "var(--px-text-strong)" }}>{analysis.decision.minimum_value_required}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* BLOQUE 2 — ANÁLISIS DE NEGOCIO Y BLOQUE 3 — PROBLEMAS CLAVE */}
-              <div className="px-grid px-grid--split" style={{ gridTemplateColumns: "340px 1fr", gap: "var(--px-space-4)" }}>
-                {/* Métricas e Indicadores de Negocio con explicación */}
-                <div className="px-stack" style={{ gap: "var(--px-space-3)" }}>
-                  <article className={`px-kpi px-kpi--${analysis.analysis.profitability.val === "alta" ? "green" : analysis.analysis.profitability.val === "media" ? "amber" : "blue"}`}>
-                    <p className="px-kpi__label">Rentabilidad</p>
-                    <p className="px-kpi__value">{analysis.analysis.profitability.val.toUpperCase()}</p>
-                    <p className="px-kpi__sub" style={{ margin: "var(--px-space-1-5) 0 0 0", fontSize: "var(--px-text-xs)", lineHeight: "1.3" }}>
-                      <strong>¿Por qué?:</strong> {analysis.analysis.profitability.reason}
-                    </p>
-                  </article>
-
-                  <article className={`px-kpi px-kpi--${analysis.analysis.risk.val === "bajo" ? "green" : analysis.analysis.risk.val === "medio" ? "amber" : "blue"} ${analysis.analysis.risk.val === "alto" ? "px-kpi--red" : ""}`}>
-                    <p className="px-kpi__label">Riesgo Contractual</p>
-                    <p className="px-kpi__value">{analysis.analysis.risk.val.toUpperCase()}</p>
-                    <p className="px-kpi__sub" style={{ margin: "var(--px-space-1-5) 0 0 0", fontSize: "var(--px-text-xs)", lineHeight: "1.3" }}>
-                      <strong>¿Por qué?:</strong> {analysis.analysis.risk.reason}
-                    </p>
-                  </article>
-
-                  <article className={`px-kpi px-kpi--${analysis.analysis.cash_flow.val === "fuerte" ? "green" : analysis.analysis.cash_flow.val === "medio" ? "amber" : "blue"}`}>
-                    <p className="px-kpi__label">Flujo de Caja</p>
-                    <p className="px-kpi__value">{analysis.analysis.cash_flow.val.toUpperCase()}</p>
-                    <p className="px-kpi__sub" style={{ margin: "var(--px-space-1-5) 0 0 0", fontSize: "var(--px-text-xs)", lineHeight: "1.3" }}>
-                      <strong>¿Por qué?:</strong> {analysis.analysis.cash_flow.reason}
-                    </p>
-                  </article>
-                </div>
-
-                {/* Problemas Clave Identificados */}
-                <div className="px-panel px-stack" style={{ gap: "var(--px-space-3)" }}>
-                  <div className="px-panel__header" style={{ marginBottom: "0", paddingBottom: "0" }}>
-                    <div>
-                      <p className="px-eyebrow">Bloque 3 — Alertas</p>
-                      <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Problemas Clave</h2>
-                    </div>
-                    <span className="px-badge px-badge--danger">{analysis.issues.length}</span>
-                  </div>
-                  {analysis.issues.length > 0 ? (
-                    <ul className="px-issues-list">
-                      {analysis.issues.map((issue: string, idx: number) => (
-                        <li key={idx} className="px-issue-item">
-                          <span className="px-issue-bullet">⚡</span>
-                          <span>{issue}</span>
+                        <li key={idx} className="px-hero-decision__condition-item">
+                          <span className="px-hero-decision__condition-bullet">•</span>
+                          <span>{cond}</span>
                         </li>
                       ))}
                     </ul>
-                  ) : (
-                    <p className="px-help" style={{ fontStyle: "italic", margin: "var(--px-space-2) 0" }}>No se detectaron alertas críticas ni condiciones desfavorables en este acuerdo.</p>
-                  )}
+                  </div>
+                )}
+
+                {analysis.decision.minimum_value_required && analysis.decision.minimum_value_required !== "no especificado" && (
+                  <div className="px-hero-decision__min-val">
+                    <span className="px-hero-decision__min-val-label">Valor mínimo de viabilidad comercial:</span>
+                    <span className="px-hero-decision__min-val-value">{analysis.decision.minimum_value_required}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 📊 2. KPI STRIP (SECOND ROW) */}
+              <div className="px-kpi-strip px-anim-enter px-anim-enter--1">
+                {/* Rentabilidad */}
+                <div className="px-kpi-card">
+                  <span className="px-kpi-card__title">Rentabilidad</span>
+                  <span className={`px-kpi-card__value px-kpi-card__value--${
+                    analysis.analysis.profitability.val === "alta" ? "green" : analysis.analysis.profitability.val === "media" ? "yellow" : "red"
+                  }`}>
+                    {analysis.analysis.profitability.val.toUpperCase()}
+                  </span>
+                  <p className="px-kpi-card__reason">
+                    <strong>¿Por qué?:</strong> {analysis.analysis.profitability.reason}
+                  </p>
+                </div>
+
+                {/* Riesgo */}
+                <div className="px-kpi-card">
+                  <span className="px-kpi-card__title">Riesgo Contractual</span>
+                  <span className={`px-kpi-card__value px-kpi-card__value--${
+                    analysis.analysis.risk.val === "bajo" ? "green" : analysis.analysis.risk.val === "medio" ? "yellow" : "red"
+                  }`}>
+                    {analysis.analysis.risk.val.toUpperCase()}
+                  </span>
+                  <p className="px-kpi-card__reason">
+                    <strong>¿Por qué?:</strong> {analysis.analysis.risk.reason}
+                  </p>
+                </div>
+
+                {/* Flujo de caja */}
+                <div className="px-kpi-card">
+                  <span className="px-kpi-card__title">Flujo de Caja</span>
+                  <span className={`px-kpi-card__value px-kpi-card__value--${
+                    analysis.analysis.cash_flow.val === "fuerte" ? "green" : analysis.analysis.cash_flow.val === "medio" ? "yellow" : "red"
+                  }`}>
+                    {analysis.analysis.cash_flow.val === "fuerte" ? "FUERTE" : analysis.analysis.cash_flow.val === "medio" ? "MEDIO" : "DÉBIL"}
+                  </span>
+                  <p className="px-kpi-card__reason">
+                    <strong>¿Por qué?:</strong> {analysis.analysis.cash_flow.reason}
+                  </p>
                 </div>
               </div>
 
-              {/* SECCIÓN DUAL: CONDICIONES DE FACTURACIÓN Y FACTORES CLAVE PARA FIRMAR */}
-              <div className="px-grid px-grid--split" style={{ gridTemplateColumns: "1fr 1fr", gap: "var(--px-space-4)" }}>
-                
-                {/* CONDICIONES DE FACTURACIÓN */}
-                <div className="px-panel px-stack" style={{ gap: "var(--px-space-4)" }}>
-                  <div>
-                    <p className="px-eyebrow">Flujo de Fondos</p>
-                    <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Condiciones de Facturación</h2>
+              {/* Fila Dividida: ⚡ 3. ALERTAS COMPACTAS y 💰 4. FACTURACIÓN */}
+              <div className="px-split-row px-anim-enter px-anim-enter--2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--px-space-6)" }}>
+                {/* 💰 4. FACTURACIÓN */}
+                <div className="px-billing-card">
+                  <h3 className="px-card-heading">Condiciones de Facturación</h3>
+                  <div className="px-billing-grid">
+                    <div className="px-billing-field">
+                      <span className="px-billing-field-label">📅 Días de Pago</span>
+                      <span className="px-billing-field-value">{analysis.billing_conditions.payment_days}</span>
+                    </div>
+                    <div className="px-billing-field">
+                      <span className="px-billing-field-label">📋 Plazos y Requisitos</span>
+                      <span className="px-billing-field-value">{analysis.billing_conditions.requirements}</span>
+                    </div>
+                    <div className="px-billing-field">
+                      <span className="px-billing-field-label">🚫 Restricciones</span>
+                      <span className="px-billing-field-value">{analysis.billing_conditions.constraints}</span>
+                    </div>
                   </div>
-
-                  <div className="px-stack" style={{ gap: "var(--px-space-3)" }}>
-                    <div style={{ paddingBottom: "var(--px-space-2)", borderBottom: "1px solid var(--px-border)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-muted)" }}>📅 Plazos / Días de Pago</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-md)", fontWeight: "bold" }}>{analysis.billing_conditions.payment_days}</p>
-                    </div>
-
-                    <div style={{ paddingBottom: "var(--px-space-2)", borderBottom: "1px solid var(--px-border)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-muted)" }}>📋 Requisitos de Radicación</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)" }}>{analysis.billing_conditions.requirements}</p>
-                    </div>
-
-                    <div style={{ paddingBottom: "var(--px-space-2)", borderBottom: "1px solid var(--px-border)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-muted)" }}>⚠️ Restricciones / Trabas</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)" }}>{analysis.billing_conditions.constraints}</p>
-                    </div>
-
-                    {/* Impacto destacado en flujo de caja */}
-                    <div style={{ padding: "var(--px-space-3)", borderRadius: "var(--px-radius-md)", background: "var(--px-surface-tint)", borderLeft: "4px solid var(--px-blue)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-blue)" }}>👉 Impacto en Flujo de Caja</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", fontWeight: "bold", color: "var(--px-text-strong)" }}>{analysis.billing_conditions.cash_flow_impact}</p>
-                    </div>
+                  <div className="px-billing-impact">
+                    <span className="px-billing-impact-icon">📈</span>
+                    <p className="px-billing-impact-text">
+                      <strong>Impacto en flujo:</strong> {analysis.billing_conditions.cash_flow_impact}
+                    </p>
                   </div>
                 </div>
 
-                {/* FACTORES CLAVE PARA FIRMAR */}
-                <div className="px-panel px-stack" style={{ gap: "var(--px-space-4)" }}>
-                  <div>
-                    <p className="px-eyebrow">Lista de Verificación de Gerencia</p>
-                    <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Factores Clave para Firmar</h2>
+                {/* ⚡ 3. ALERTAS COMPACTAS */}
+                <div className="px-alerts-card">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--px-space-1)" }}>
+                    <h3 className="px-card-heading" style={{ margin: 0 }}>Alertas de Riesgo</h3>
+                    {analysis.issues.length > 3 && (
+                      <span className="px-badge px-badge--danger" style={{ fontSize: "var(--px-text-xs)" }}>
+                        +{analysis.issues.length - 3} más
+                      </span>
+                    )}
                   </div>
-
-                  <div className="px-stack" style={{ gap: "var(--px-space-2-5)" }}>
-                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>💰 Valor Mínimo Requerido</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                        {analysis.factors_to_sign.minimum_value_required}
-                      </p>
-                    </div>
-                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>💳 Condiciones de Pago</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                        {analysis.factors_to_sign.payment_conditions}
-                      </p>
-                    </div>
-                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>🛡️ Tolerancia al Riesgo</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                        {analysis.factors_to_sign.risk_tolerance}
-                      </p>
-                    </div>
-                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>📈 Cobertura de Costos</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                        {analysis.factors_to_sign.cost_coverage}
-                      </p>
-                    </div>
-                    <div className="px-feature-box" style={{ padding: "var(--px-space-3)", background: "var(--px-surface-raised)" }}>
-                      <p className="px-eyebrow" style={{ fontSize: "var(--px-text-xs)", margin: 0, color: "var(--px-purple)" }}>⚙️ Requisitos Operativos</p>
-                      <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-sm)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                        {analysis.factors_to_sign.operational_requirements}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* NUEVA SECCIÓN: MOTOR DE IMPACTO DE CLÁUSULAS */}
-              <div className="px-panel px-stack" style={{ gap: "var(--px-space-4)" }}>
-                <div>
-                  <p className="px-eyebrow">Bloque 1 — Clause Impact Engine</p>
-                  <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Traducción de Cláusulas e Impacto en Negocio</h2>
-                </div>
-
-                <div className="px-grid" style={{ gridTemplateColumns: "1fr", gap: "var(--px-space-3.5)" }}>
-                  {analysis.clause_impacts && analysis.clause_impacts.length > 0 ? (
-                    analysis.clause_impacts.map((ci: ClauseImpact, idx: number) => (
-                      <div 
-                        key={idx} 
-                        className="px-card" 
-                        style={{ 
-                          borderLeft: `5px solid ${severityColorMap[ci.severity] || "var(--px-border)"}`,
-                          background: "var(--px-surface-raised)",
-                          padding: "var(--px-space-4)"
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--px-space-2)" }}>
-                          <h4 style={{ margin: 0, fontSize: "var(--px-text-md)", fontWeight: "bold", color: "var(--px-text-strong)" }}>
-                            {ci.clause}
-                          </h4>
-                          <span className={`px-badge px-badge--${ci.severity === "alta" ? "danger" : ci.severity === "media" ? "warning" : "success"}`}>
-                            Severidad {ci.severity.toUpperCase()}
-                          </span>
-                        </div>
-                        <p style={{ margin: "0 0 var(--px-space-3) 0", fontSize: "var(--px-text-sm)", color: "var(--px-muted)", fontStyle: "italic" }}>
-                          <strong>Detalle Contractual:</strong> {ci.detail}
-                        </p>
-                        <div style={{ padding: "var(--px-space-3)", borderRadius: "var(--px-radius-sm)", background: "var(--px-surface-tint)", border: "1px solid rgba(0,0,0,0.01)" }}>
-                          <strong style={{ fontSize: "var(--px-text-xs)", color: "var(--px-text-soft)", textTransform: "uppercase", letterSpacing: "0.04em" }}>👉 Impacto en Negocio:</strong>
-                          <p style={{ margin: "var(--px-space-1) 0 0 0", fontSize: "var(--px-text-md)", color: "var(--px-text-strong)", fontWeight: "bold" }}>
-                            {ci.business_impact}
-                          </p>
-                        </div>
+                  <div className="px-alerts-compact-list">
+                    {analysis.issues.slice(0, 3).map((issue: string, idx: number) => (
+                      <div key={idx} className="px-alerts-compact-item">
+                        <span className="px-alerts-compact-icon">⚠️</span>
+                        <span className="px-alerts-compact-text">{issue}</span>
                       </div>
-                    ))
+                    ))}
+                    {analysis.issues.length === 0 && (
+                      <p className="px-alerts-compact-empty">
+                        ✅ No se han detectado riesgos ni alertas de gravedad en el acuerdo.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 🧠 5. FACTORES PARA FIRMAR (LISTA DE VERIFICACIÓN) */}
+              <div className="px-factors-card px-anim-enter px-anim-enter--3">
+                <h3 className="px-card-heading" style={{ marginBottom: "var(--px-space-4)" }}>Factores Clave para Firmar</h3>
+                <div className="px-factors-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "var(--px-space-4)" }}>
+                  
+                  <div className="px-factor-item">
+                    <span className="px-factor-check">✓</span>
+                    <div className="px-factor-info">
+                      <span className="px-factor-label">Valor Mínimo</span>
+                      <span className="px-factor-value">{analysis.factors_to_sign.minimum_value_required}</span>
+                    </div>
+                  </div>
+
+                  <div className="px-factor-item">
+                    <span className="px-factor-check">✓</span>
+                    <div className="px-factor-info">
+                      <span className="px-factor-label">Condiciones de Pago</span>
+                      <span className="px-factor-value">{analysis.factors_to_sign.payment_conditions}</span>
+                    </div>
+                  </div>
+
+                  <div className="px-factor-item">
+                    <span className="px-factor-check">✓</span>
+                    <div className="px-factor-info">
+                      <span className="px-factor-label">Riesgo Controlado</span>
+                      <span className="px-factor-value">{analysis.factors_to_sign.risk_tolerance}</span>
+                    </div>
+                  </div>
+
+                  <div className="px-factor-item">
+                    <span className="px-factor-check">✓</span>
+                    <div className="px-factor-info">
+                      <span className="px-factor-label">Costos Cubiertos</span>
+                      <span className="px-factor-value">{analysis.factors_to_sign.cost_coverage}</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* 🔬 6. CLAUSE ANALYSIS (COLLAPSIBLE ACORDEÓN) */}
+              <div className="px-clauses-accordion-card px-anim-enter px-anim-enter--4">
+                <div className="px-clauses-accordion-card__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--px-space-4)", gap: "var(--px-space-4)", flexWrap: "wrap" }}>
+                  <div>
+                    <h3 className="px-card-heading" style={{ margin: 0 }}>Análisis de Cláusulas Específicas</h3>
+                    <p style={{ margin: "2px 0 0", fontSize: "var(--px-text-xs)", color: "var(--px-muted)" }}>
+                      Haz clic en cualquier cláusula para desglosar su impacto operativo, financiero y de riesgo
+                    </p>
+                  </div>
+                  
+                  <div style={{ display: "flex", gap: "var(--px-space-3)", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <button className="px-btn px-btn--ghost px-btn--sm" style={{ padding: "var(--px-space-1) var(--px-space-2)", fontSize: "0.75rem", minHeight: "auto" }} onClick={() => expandAllClauses(analysis.clause_impacts?.length || 0)}>
+                        Expandir Todo
+                      </button>
+                      <button className="px-btn px-btn--ghost px-btn--sm" style={{ padding: "var(--px-space-1) var(--px-space-2)", fontSize: "0.75rem", minHeight: "auto" }} onClick={collapseAllClauses}>
+                        Colapsar Todo
+                      </button>
+                    </div>
+                    {analysis.clause_impacts && analysis.clause_impacts.length > 0 && (
+                      <div style={{ display: "flex", gap: "var(--px-space-1)" }}>
+                        <span className="px-badge px-badge--danger" style={{ padding: "2px 6px", fontSize: "10px" }}>
+                          {analysis.clause_impacts.filter((c: ClauseImpact) => c.severity === "alta").length} Alta
+                        </span>
+                        <span className="px-badge px-badge--warning" style={{ padding: "2px 6px", fontSize: "10px" }}>
+                          {analysis.clause_impacts.filter((c: ClauseImpact) => c.severity === "media").length} Media
+                        </span>
+                        <span className="px-badge px-badge--success" style={{ padding: "2px 6px", fontSize: "10px" }}>
+                          {analysis.clause_impacts.filter((c: ClauseImpact) => c.severity === "baja").length} Baja
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="px-clauses-accordion-list" style={{ display: "flex", flexDirection: "column", gap: "var(--px-space-2)" }}>
+                  {analysis.clause_impacts && analysis.clause_impacts.length > 0 ? (
+                    analysis.clause_impacts.map((ci: ClauseImpact, idx: number) => {
+                      const isOpen = !!expandedClauses[idx];
+                      return (
+                        <div key={idx} className={`px-clause-accordion ${isOpen ? "px-clause-accordion--open" : ""} px-clause-accordion--${ci.severity}`}>
+                          <div className="px-clause-accordion__header" onClick={() => toggleClause(idx)}>
+                            <div className="px-clause-accordion__title-group">
+                              <span className="px-clause-accordion__arrow">▶</span>
+                              <span className="px-clause-accordion__number">{String(ci.clause_number || idx + 1).padStart(2, "0")}</span>
+                              <span className="px-clause-accordion__name">{ci.clause}</span>
+                            </div>
+                            <span className={`px-badge px-badge--${ci.severity === "alta" ? "danger" : ci.severity === "media" ? "warning" : "success"}`} style={{ fontSize: "11px" }}>
+                              {ci.severity === "alta" ? "🔴 ALTA" : ci.severity === "media" ? "🟡 MEDIA" : "🟢 BAJA"}
+                            </span>
+                          </div>
+
+                          {isOpen && (
+                            <div className="px-clause-accordion__content">
+                              <div className="px-clause-accordion__detail">
+                                <p style={{ margin: 0 }}>
+                                  <strong>Dice el contrato:</strong> {ci.detail}
+                                </p>
+                              </div>
+
+                              <div className="px-clause-accordion__impact-grid">
+                                <div className="px-clause-accordion__impact-col px-clause-accordion__impact-col--financial">
+                                  <span className="px-clause-accordion__impact-label">💰 Financiero</span>
+                                  <span className="px-clause-accordion__impact-text">{ci.financial_impact}</span>
+                                </div>
+                                <div className="px-clause-accordion__impact-col px-clause-accordion__impact-col--operational">
+                                  <span className="px-clause-accordion__impact-label">⚙️ Operacional</span>
+                                  <span className="px-clause-accordion__impact-text">{ci.operational_impact}</span>
+                                </div>
+                                <div className="px-clause-accordion__impact-col px-clause-accordion__impact-col--risk">
+                                  <span className="px-clause-accordion__impact-label">🛡️ Riesgo</span>
+                                  <span className="px-clause-accordion__impact-text">{ci.risk_impact}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
                   ) : (
-                    <p className="px-help" style={{ fontStyle: "italic" }}>No se han definido desgloses de impacto para las cláusulas de este contrato.</p>
+                    <div style={{ textAlign: "center", padding: "var(--px-space-6)", color: "var(--px-muted)", fontStyle: "italic" }}>
+                      No se encontraron cláusulas particulares analizadas.
+                    </div>
                   )}
                 </div>
               </div>
 
-              {/* DATOS DE METADATOS DEL CONTRATO */}
-              <div className="px-panel">
-                <div className="px-panel__header" style={{ marginBottom: "var(--px-space-4)" }}>
-                  <div>
-                    <p className="px-eyebrow">Variables Base</p>
-                    <h2 className="px-panel__title" style={{ fontSize: "var(--px-text-panel)" }}>Datos Generales del Acuerdo</h2>
-                  </div>
-                </div>
-
+              {/* DATOS DE METADATOS DEL CONTRATO (BASE VARIABLES) */}
+              <div className="px-metadata-card px-anim-enter px-anim-enter--5" style={{ background: "var(--px-surface)", border: "1px solid var(--px-border)", borderRadius: "var(--px-radius-xl)", padding: "var(--px-space-5)", boxShadow: "var(--px-shadow-sm)" }}>
+                <h3 className="px-card-heading" style={{ marginBottom: "var(--px-space-3)" }}>Datos Extraídos del Acuerdo</h3>
+                
                 <div className="px-table-wrap">
                   <table className="px-table">
                     <thead>
@@ -730,7 +819,7 @@ export default function Home() {
                       </tr>
                       {/* Valor */}
                       <tr>
-                        <td><strong>Valor</strong></td>
+                        <td><strong>Valor Proyectado</strong></td>
                         <td className="px-td-money">
                           {analysis.data.value !== "no encontrado" ? (
                             <span>
@@ -738,7 +827,7 @@ export default function Home() {
                               {analysis.data.trm !== "no encontrado" ? ` (TRM: ${analysis.data.trm})` : ""}
                             </span>
                           ) : (
-                            <span style={{ color: "var(--px-muted)", fontStyle: "italic", fontFamily: "var(--px-font-ui)", fontWeight: "normal" }}>no encontrado</span>
+                            <span style={{ color: "var(--px-muted)", fontStyle: "italic", fontFamily: "var(--px-font-ui)", fontWeight: "normal" }}>no especificado en contrato</span>
                           )}
                         </td>
                       </tr>
@@ -754,12 +843,12 @@ export default function Home() {
                       </tr>
                       {/* Duración */}
                       <tr>
-                        <td><strong>Duración</strong></td>
+                        <td><strong>Vigencia / Duración</strong></td>
                         <td>{analysis.data.duration}</td>
                       </tr>
                       {/* Forma de pago */}
                       <tr>
-                        <td><strong>Forma de Pago</strong></td>
+                        <td><strong>Condiciones de Radicación</strong></td>
                         <td>{analysis.data.payment_terms}</td>
                       </tr>
                     </tbody>

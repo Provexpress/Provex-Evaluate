@@ -256,34 +256,45 @@ function enrichClauseImpacts(
   const hasPenalties = impacts.some(i => i.clause.toLowerCase().includes("penal"));
   if (!hasPenalties && contract.data.penalties !== "no encontrado") {
     impacts.push({
+      clause_number: impacts.length + 1,
       clause: "Penalidades",
       detail: contract.data.penalties,
-      business_impact: "Afecta la rentabilidad comercial. Multas por moras o entregas tardías pueden generar pérdidas financieras directas.",
-      severity: "alta"
+      severity: "alta",
+      financial_impact: "Multas por moras o entregas tardías pueden reducir directamente el margen de ganancia.",
+      operational_impact: "Requiere control estricto de cronogramas y entregables para evitar activación de multas.",
+      risk_impact: "Exposición financiera alta si se presentan incumplimientos por causas externas."
     });
   }
 
   const hasTermination = impacts.some(i => i.clause.toLowerCase().includes("termina"));
   if (!hasTermination && contract.data.termination !== "no encontrado") {
     impacts.push({
-      clause: "Terminación",
+      clause_number: impacts.length + 1,
+      clause: "Terminación Anticipada",
       detail: contract.data.termination,
-      business_impact: unilateralTerm 
-        ? "Afecta el riesgo de continuidad. El cliente puede rescindir el contrato unilateralmente dejando al proveedor con capacidad ociosa." 
-        : "Afecta la estabilidad del proyecto y el riesgo a largo plazo.",
-      severity: unilateralTerm ? "alta" : "media"
+      severity: unilateralTerm ? "alta" : "media",
+      financial_impact: unilateralTerm
+        ? "Si el cliente rescinde unilateralmente, pueden quedar costos comprometidos sin recuperar."
+        : "La terminación bilateral protege ambas partes, riesgo financiero moderado.",
+      operational_impact: "Afecta la planeación de recursos; puede generar capacidad ociosa o retrasos en otros proyectos.",
+      risk_impact: unilateralTerm
+        ? "El cliente puede rescindir sin compensación, dejando al proveedor expuesto."
+        : "Riesgo de continuidad moderado, ambas partes deben acordar la terminación."
     });
   }
 
   const hasPolicies = impacts.some(i => i.clause.toLowerCase().includes("poliza") || i.clause.toLowerCase().includes("póliza"));
   if (!hasPolicies && contract.data.policies !== "no encontrado") {
     impacts.push({
+      clause_number: impacts.length + 1,
       clause: "Pólizas y Garantías",
       detail: contract.data.policies,
-      business_impact: contractorCosts 
-        ? "Incrementa los costos operativos directos. El traslado total de costos de pólizas reduce directamente el margen de ganancia." 
-        : "Aumenta los costos de suscripción y movilización inicial.",
-      severity: contractorCosts ? "alta" : "media"
+      severity: contractorCosts ? "alta" : "media",
+      financial_impact: contractorCosts
+        ? "El costo total de pólizas corre por cuenta del proveedor, reduciendo directamente el margen."
+        : "Aumenta los costos de movilización y suscripción inicial.",
+      operational_impact: "Requiere gestión y contratación de pólizas antes del inicio. Demora posible en arranque.",
+      risk_impact: "Pólizas no contratadas a tiempo pueden bloquear el inicio del contrato o generar incumplimientos formales."
     });
   }
 }
