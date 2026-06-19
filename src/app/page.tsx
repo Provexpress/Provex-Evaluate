@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import type { ContractAnalysis, ClauseImpact } from "@/lib/contract-analysis/schema";
 
 const decisionClassMap: Record<string, string> = {
@@ -321,16 +323,84 @@ function buildContractReportHtml({
 </html>`;
 }
 
-function downloadHtmlReport(html: string, fileName: string): void {
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+function renderReportOffscreen(html: string): HTMLDivElement {
+  const container = document.createElement("div");
+  container.setAttribute("data-px-report-canvas", "true");
+  container.style.position = "fixed";
+  container.style.left = "-10000px";
+  container.style.top = "0";
+  container.style.width = "980px";
+  container.style.background = "#fff";
+  container.style.zIndex = "-1";
+  container.innerHTML = html;
+  document.body.appendChild(container);
+  return container;
+}
+
+async function downloadReportAsPdf(html: string, fileName: string): Promise<void> {
+  const container = renderReportOffscreen(html);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      logging: false
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 8;
+    const printableWidth = pageWidth - margin * 2;
+    const totalHeight = (canvas.height * printableWidth) / canvas.width;
+
+    if (totalHeight <= pageHeight - margin * 2) {
+      pdf.addImage(imgData, "PNG", margin, margin, printableWidth, totalHeight);
+    } else {
+      const sliceHeightPx = ((pageHeight - margin * 2) * canvas.width) / printableWidth;
+      let yOffset = 0;
+
+      while (yOffset < canvas.height) {
+        const sliceHeight = Math.min(sliceHeightPx, canvas.height - yOffset);
+        const pageCanvas = document.createElement("canvas");
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeight;
+        const ctx = pageCanvas.getContext("2d");
+        if (!ctx) {
+          break;
+        }
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        ctx.drawImage(
+          canvas,
+          0,
+          yOffset,
+          canvas.width,
+          sliceHeight,
+          0,
+          0,
+          canvas.width,
+          sliceHeight
+        );
+
+        const sliceImg = pageCanvas.toDataURL("image/png");
+        const sliceHeightMm = (sliceHeight * printableWidth) / canvas.width;
+
+        if (yOffset > 0) {
+          pdf.addPage();
+        }
+        pdf.addImage(sliceImg, "PNG", margin, margin, printableWidth, sliceHeightMm);
+        yOffset += sliceHeight;
+      }
+    }
+
+    pdf.save(fileName);
+  } finally {
+    container.remove();
+  }
 }
 
 
@@ -574,7 +644,7 @@ export default function Home() {
     return <span>{displayVal}</span>;
   };
 
-  const handleDownloadReport = () => {
+  const handleDownloadReport = async () => {
     if (!analysis) {
       return;
     }
@@ -589,7 +659,12 @@ export default function Home() {
     const today = new Date().toISOString().slice(0, 10);
     const baseName = safeReportFileName(file?.name || "contrato");
 
-    downloadHtmlReport(html, `informe-${baseName}-${today}.html`);
+    try {
+      await downloadReportAsPdf(html, `informe-${baseName}-${today}.pdf`);
+    } catch (error) {
+      console.error("No se pudo generar el PDF del informe", error);
+      window.alert("No se pudo generar el PDF del informe. Intentalo de nuevo.");
+    }
   };
 
   return (
