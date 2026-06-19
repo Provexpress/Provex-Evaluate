@@ -9,6 +9,330 @@ const decisionClassMap: Record<string, string> = {
   no_recomendado_sin_validacion: "do_not_sign"
 };
 
+type ReportBuildInput = {
+  analysis: ContractAnalysis;
+  contractFileName?: string;
+  purchaseOrderFileName?: string;
+  estimatedCost?: string;
+  expectedMargin?: string;
+};
+
+const EMPTY_REPORT_VALUES = new Set([
+  "",
+  "no encontrado",
+  "no especificado",
+  "no especificada",
+  "no especificadas",
+  "no determinado",
+  "no determinada",
+  "no determinadas",
+  "no aplica",
+  "n/a"
+]);
+
+function isUsefulReportText(value: unknown): value is string {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  return !EMPTY_REPORT_VALUES.has(value.trim().toLowerCase());
+}
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function reportValue(value: unknown, fallback = "No especificado"): string {
+  return isUsefulReportText(value) ? escapeHtml(value) : fallback;
+}
+
+function addUniqueReportItem(items: string[], value: unknown): void {
+  if (!isUsefulReportText(value)) {
+    return;
+  }
+
+  const normalized = value.trim();
+  if (!items.some((item) => item.toLowerCase() === normalized.toLowerCase())) {
+    items.push(normalized);
+  }
+}
+
+function renderReportList(items: string[], emptyText: string): string {
+  const safeItems = items.filter(isUsefulReportText);
+
+  if (safeItems.length === 0) {
+    return `<p class="muted">${escapeHtml(emptyText)}</p>`;
+  }
+
+  return `<ul>${safeItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+}
+
+function renderReportRows(rows: Array<[string, unknown]>): string {
+  return rows
+    .map(
+      ([label, value]) =>
+        `<tr><th>${escapeHtml(label)}</th><td>${reportValue(value)}</td></tr>`
+    )
+    .join("");
+}
+
+function formatReportParties(parties: ContractAnalysis["data"]["parties"]): string {
+  if (typeof parties === "string") {
+    return isUsefulReportText(parties) ? parties : "No especificado";
+  }
+
+  const entries = Object.entries(parties);
+  if (entries.length === 0) {
+    return "No especificado";
+  }
+
+  return entries
+    .map(([role, name]) => `${role}: ${name}`)
+    .join("; ");
+}
+
+function safeReportFileName(value: string): string {
+  return (
+    value
+      .replace(/\.pdf$/i, "")
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "contrato"
+  ).toLowerCase();
+}
+
+function getDecisionLabel(type: ContractAnalysis["decision"]["type"]): string {
+  if (type === "firmar") return "Aprobado para firmar";
+  if (type === "no_recomendado_sin_validacion") return "No recomendado sin validacion";
+  return "Firmar con condiciones";
+}
+
+function collectImprovementItems(analysis: ContractAnalysis): string[] {
+  const items: string[] = [];
+
+  if (!isUsefulReportText(analysis.data.value)) {
+    addUniqueReportItem(items, "Definir valor contractual, moneda y alcance economico antes de aprobar la firma.");
+  }
+
+  if (analysis.analysis.profitability.val !== "alta") {
+    addUniqueReportItem(items, `Mejorar rentabilidad: ${analysis.analysis.profitability.reason}`);
+  }
+
+  if (analysis.analysis.risk.val !== "bajo") {
+    addUniqueReportItem(items, `Reducir riesgo contractual: ${analysis.analysis.risk.reason}`);
+  }
+
+  if (analysis.analysis.cash_flow.val !== "fuerte") {
+    addUniqueReportItem(items, `Fortalecer flujo de caja: ${analysis.analysis.cash_flow.reason}`);
+  }
+
+  analysis.issues.forEach((issue) => addUniqueReportItem(items, issue));
+  analysis.decision.conditions.forEach((condition) => addUniqueReportItem(items, condition));
+
+  if (isUsefulReportText(analysis.factors_to_sign.payment_conditions)) {
+    addUniqueReportItem(items, `Negociar condiciones de pago: ${analysis.factors_to_sign.payment_conditions}`);
+  }
+
+  if (isUsefulReportText(analysis.factors_to_sign.cost_coverage)) {
+    addUniqueReportItem(items, `Validar cobertura de costos: ${analysis.factors_to_sign.cost_coverage}`);
+  }
+
+  if (
+    analysis.policies_analysis.are_policies_required_by_contract &&
+    (!analysis.policies_analysis.is_policy_type_defined ||
+      !analysis.policies_analysis.is_policy_amount_defined)
+  ) {
+    addUniqueReportItem(items, "Definir tipo, monto, vigencia y costo de polizas antes de firmar.");
+  }
+
+  addUniqueReportItem(items, analysis.policies_analysis.policy_conclusion.final_note);
+
+  analysis.clause_impacts
+    .filter((clause) => clause.severity === "alta")
+    .slice(0, 5)
+    .forEach((clause) => {
+      addUniqueReportItem(
+        items,
+        `Revisar clausula "${clause.clause}": ${clause.financial_impact || clause.risk_impact}`
+      );
+    });
+
+  return items.slice(0, 14);
+}
+
+function buildContractReportHtml({
+  analysis,
+  contractFileName,
+  purchaseOrderFileName,
+  estimatedCost,
+  expectedMargin
+}: ReportBuildInput): string {
+  const reportDate = new Date().toLocaleString("es-CO", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
+  const improvementItems = collectImprovementItems(analysis);
+  const requiredPolicies = analysis.policies_analysis.policies_list.filter(
+    (policy) => policy.is_explicitly_required_by_contract
+  );
+  const suggestedPolicies = analysis.policies_analysis.policies_list.filter(
+    (policy) => !policy.is_explicitly_required_by_contract && policy.applies
+  );
+  const highClauses = analysis.clause_impacts.filter((clause) => clause.severity === "alta");
+
+  return `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Informe de analisis contractual</title>
+  <style>
+    body { margin: 0; padding: 40px; color: #172033; background: #f3f6fd; font-family: Arial, sans-serif; line-height: 1.55; }
+    main { max-width: 980px; margin: 0 auto; background: #fff; border: 1px solid #d7e0f0; border-radius: 16px; padding: 32px; box-shadow: 0 16px 44px rgba(26,43,107,0.10); }
+    h1, h2, h3 { margin: 0; color: #1a2b6b; line-height: 1.2; }
+    h1 { font-size: 28px; }
+    h2 { margin-top: 30px; padding-bottom: 8px; border-bottom: 1px solid #d7e0f0; font-size: 18px; }
+    h3 { margin-top: 18px; font-size: 15px; }
+    p { margin: 8px 0; }
+    .meta { margin-top: 8px; color: #677592; font-size: 13px; }
+    .hero { margin-top: 24px; padding: 20px; border-radius: 12px; background: #eef3ff; border-left: 5px solid #1565c0; }
+    .hero strong { display: block; margin-bottom: 6px; color: #1a2b6b; font-size: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .metric { padding: 14px; border: 1px solid #d7e0f0; border-radius: 10px; background: #fafcff; }
+    .metric span { display: block; color: #677592; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .metric strong { display: block; margin: 4px 0; color: #1a2b6b; font-size: 18px; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { padding: 10px 12px; border: 1px solid #d7e0f0; text-align: left; vertical-align: top; }
+    th { width: 230px; color: #2f437f; background: #f4f7ff; }
+    ul { margin: 10px 0 0; padding-left: 20px; }
+    li { margin-bottom: 7px; }
+    .warning { padding: 16px; border: 1px solid #f0a020; border-radius: 10px; background: #fff7e8; }
+    .muted { color: #677592; font-style: italic; }
+    .small { color: #677592; font-size: 12px; }
+    @media print { body { background: #fff; padding: 0; } main { box-shadow: none; border: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Informe de analisis contractual</h1>
+    <p class="meta">Generado por ProvexEvaluate el ${escapeHtml(reportDate)}</p>
+    <p class="meta">Contrato: ${reportValue(contractFileName)}${purchaseOrderFileName ? ` | Orden de compra: ${reportValue(purchaseOrderFileName)}` : ""}</p>
+
+    <section class="hero">
+      <strong>${escapeHtml(getDecisionLabel(analysis.decision.type))}</strong>
+      <p>${reportValue(analysis.decision.recommendation)}</p>
+      <p><strong>Valor minimo de viabilidad:</strong> ${reportValue(analysis.decision.minimum_value_required)}</p>
+    </section>
+
+    <section>
+      <h2>Indicadores ejecutivos</h2>
+      <div class="grid">
+        <div class="metric"><span>Rentabilidad</span><strong>${escapeHtml(analysis.analysis.profitability.val)}</strong><p>${reportValue(analysis.analysis.profitability.reason)}</p></div>
+        <div class="metric"><span>Riesgo</span><strong>${escapeHtml(analysis.analysis.risk.val)}</strong><p>${reportValue(analysis.analysis.risk.reason)}</p></div>
+        <div class="metric"><span>Flujo de caja</span><strong>${escapeHtml(analysis.analysis.cash_flow.val)}</strong><p>${reportValue(analysis.analysis.cash_flow.reason)}</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Aspectos a mejorar</h2>
+      <div class="warning">
+        ${renderReportList(improvementItems, "No se identificaron mejoras criticas adicionales.")}
+      </div>
+    </section>
+
+    <section>
+      <h2>Condiciones para aprobar</h2>
+      ${renderReportList(analysis.decision.conditions, "Sin condiciones adicionales reportadas.")}
+    </section>
+
+    <section>
+      <h2>Datos extraidos del acuerdo</h2>
+      <table>
+        <tbody>
+          ${renderReportRows([
+            ["Partes", formatReportParties(analysis.data.parties)],
+            ["Valor", `${analysis.data.value} ${analysis.data.currency}`],
+            ["TRM", analysis.data.trm],
+            ["Duracion", analysis.data.duration],
+            ["Condiciones de pago", analysis.data.payment_terms],
+            ["Polizas y garantias", analysis.data.policies],
+            ["Penalidades", analysis.data.penalties],
+            ["Terminacion", analysis.data.termination],
+            ["Costo estimado", estimatedCost],
+            ["Margen esperado", expectedMargin]
+          ])}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Alertas de riesgo</h2>
+      ${renderReportList(analysis.issues, "No se reportaron alertas relevantes.")}
+    </section>
+
+    <section>
+      <h2>Facturacion y flujo de caja</h2>
+      <table>
+        <tbody>
+          ${renderReportRows([
+            ["Dias de pago", analysis.billing_conditions.payment_days],
+            ["Requisitos", analysis.billing_conditions.requirements],
+            ["Restricciones", analysis.billing_conditions.constraints],
+            ["Impacto en flujo", analysis.billing_conditions.cash_flow_impact]
+          ])}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Polizas y garantias</h2>
+      <p><strong>Estado:</strong> ${reportValue(analysis.policies_analysis.required_status)}</p>
+      <p><strong>Conclusion:</strong> ${reportValue(analysis.policies_analysis.policy_conclusion.summary)}</p>
+      <h3>Exigidas por contrato</h3>
+      ${renderReportList(requiredPolicies.map((policy) => `${policy.name}: ${policy.value_details}`), "No se identificaron polizas exigidas por nombre o tipo.")}
+      <h3>Sugeridas por analisis</h3>
+      ${renderReportList(suggestedPolicies.map((policy) => `${policy.name}: ${policy.estimated_cost}`), "No se identificaron polizas sugeridas adicionales.")}
+      <table>
+        <tbody>
+          ${renderReportRows([
+            ["Impacto en costos", analysis.policies_analysis.business_impact.cost_impact],
+            ["Impacto en rentabilidad", analysis.policies_analysis.business_impact.profitability_impact],
+            ["Esfuerzo de gestion", analysis.policies_analysis.business_impact.management_effort]
+          ])}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Clausulas criticas</h2>
+      ${renderReportList(
+        highClauses.map((clause) => `${clause.clause}: ${clause.financial_impact || clause.risk_impact}`),
+        "No se reportaron clausulas de severidad alta."
+      )}
+    </section>
+
+    <p class="small">Este informe es una herramienta de apoyo a la decision comercial. Debe validarse con gerencia, juridica y el cliente antes de firmar.</p>
+  </main>
+</body>
+</html>`;
+}
+
+function downloadHtmlReport(html: string, fileName: string): void {
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 
 export default function Home() {
   // Estado del archivo de contrato y arrastre
@@ -250,6 +574,24 @@ export default function Home() {
     return <span>{displayVal}</span>;
   };
 
+  const handleDownloadReport = () => {
+    if (!analysis) {
+      return;
+    }
+
+    const html = buildContractReportHtml({
+      analysis,
+      contractFileName: file?.name,
+      purchaseOrderFileName: purchaseOrderFile?.name,
+      estimatedCost: estimatedCost.trim() || undefined,
+      expectedMargin: expectedMargin.trim() || undefined
+    });
+    const today = new Date().toISOString().slice(0, 10);
+    const baseName = safeReportFileName(file?.name || "contrato");
+
+    downloadHtmlReport(html, `informe-${baseName}-${today}.html`);
+  };
+
   return (
     <main className="px-shell px-shell--dashboard px-stack">
       {/* Barra superior del sistema */}
@@ -269,6 +611,16 @@ export default function Home() {
           </div>
         </div>
         <div className="px-actions">
+          {analysis && (
+            <button className="px-btn px-btn--secondary px-btn--sm" onClick={handleDownloadReport}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Descargar informe
+            </button>
+          )}
           {(analysis || file || purchaseOrderFile || estimatedCost || expectedMargin) && (
             <button className="px-btn px-btn--ghost px-btn--sm" onClick={handleReset}>
               Restablecer Panel
@@ -445,7 +797,21 @@ export default function Home() {
           {/* Tablero de Decisiones y Resultados */}
           {!isLoading && analysis && (
             <div className="px-results-stack" style={{ display: "flex", flexDirection: "column", gap: "var(--px-space-6)" }}>
-              
+              <div className="px-report-actions px-anim-enter">
+                <div>
+                  <h3 className="px-report-actions__title">Informe de análisis listo</h3>
+                  <p className="px-report-actions__copy">Incluye decisión, riesgos, pólizas, cláusulas y aspectos a mejorar.</p>
+                </div>
+                <button className="px-btn px-btn--primary" onClick={handleDownloadReport}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Descargar informe
+                </button>
+              </div>
+
               {/* 🔴 1. HERO DECISION (TOP) */}
               <div className={`px-hero-decision px-hero-decision--${decisionClassMap[analysis.decision.type] || "conditional"} px-anim-enter`}>
                 {analysis.data.financials_from_po && (

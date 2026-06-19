@@ -1642,6 +1642,33 @@
   gap: var(--px-space-6);
 }
 
+.px-report-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--px-space-4);
+  padding: var(--px-space-4) var(--px-space-5);
+  border: 1px solid var(--px-border);
+  border-radius: var(--px-radius-xl);
+  background: linear-gradient(135deg, rgba(21,101,192,0.06), rgba(106,63,160,0.05));
+  box-shadow: var(--px-shadow-sm);
+}
+
+.px-report-actions__title {
+  margin: 0;
+  color: var(--px-text-strong);
+  font-family: var(--px-font-display);
+  font-size: var(--px-text-md);
+  font-weight: var(--px-weight-black);
+  line-height: 1.2;
+}
+
+.px-report-actions__copy {
+  margin: var(--px-space-1) 0 0;
+  color: var(--px-muted);
+  font-size: var(--px-text-xs);
+}
+
 /* 🔴 1. HERO DECISION (TOP) */
 .px-hero-decision {
   background: var(--px-surface);
@@ -2151,6 +2178,15 @@
   .px-kpi-strip {
     grid-template-columns: 1fr;
     gap: var(--px-space-4);
+  }
+
+  .px-report-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .px-report-actions .px-btn {
+    width: 100%;
   }
   
   .px-factors-grid {
