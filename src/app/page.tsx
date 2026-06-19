@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import type { ContractAnalysis, ClauseImpact } from "@/lib/contract-analysis/schema";
 
 const decisionClassMap: Record<string, string> = {
@@ -52,6 +51,14 @@ function escapeHtml(value: unknown): string {
 
 function reportValue(value: unknown, fallback = "No especificado"): string {
   return isUsefulReportText(value) ? escapeHtml(value) : fallback;
+}
+
+function reportText(value: unknown, fallback = "No especificado"): string {
+  if (!isUsefulReportText(value)) {
+    return fallback;
+  }
+
+  return String(value).replace(/\s+/g, " ").trim();
 }
 
 function addUniqueReportItem(items: string[], value: unknown): void {
@@ -808,65 +815,249 @@ async function fetchLogoAsDataUrl(): Promise<string | undefined> {
   }
 }
 
-async function downloadReportAsPdf(html: string, fileName: string): Promise<void> {
-  const container = renderReportOffscreen(html);
+async function downloadReportAsPdf(input: ReportBuildInput, fileName: string): Promise<void> {
+  const {
+    analysis,
+    contractFileName,
+    purchaseOrderFileName,
+    estimatedCost,
+    expectedMargin,
+    logoDataUrl
+  } = input;
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const margin = 16;
+  const contentWidth = pageWidth - margin * 2;
+  const bottomLimit = pageHeight - 18;
+  let y = margin;
 
-  // Allow a tick so the browser lays out the offscreen DOM
-  await new Promise((r) => setTimeout(r, 80));
+  const improvementItems = collectImprovementItems(analysis);
+  const requiredPolicies = analysis.policies_analysis.policies_list.filter(
+    (policy) => policy.is_explicitly_required_by_contract
+  );
+  const suggestedPolicies = analysis.policies_analysis.policies_list.filter(
+    (policy) => !policy.is_explicitly_required_by_contract && policy.applies
+  );
+  const highClauses = analysis.clause_impacts.filter((clause) => clause.severity === "alta");
+  const reportDate = new Date().toLocaleString("es-CO", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
 
-  try {
-    const canvas = await html2canvas(container, {
-      scale: 2.5,
-      backgroundColor: "#ffffff",
-      useCORS: true,
-      allowTaint: false,
-      logging: false,
-      imageTimeout: 8000
-    });
+  const ensureSpace = (height: number) => {
+    if (y + height <= bottomLimit) {
+      return;
+    }
+    pdf.addPage();
+    y = margin;
+  };
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
-    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+  const writeWrapped = (
+    text: unknown,
+    x: number,
+    width: number,
+    options: { size?: number; color?: [number, number, number]; bold?: boolean; lineHeight?: number } = {}
+  ) => {
+    const size = options.size ?? 9;
+    const lineHeight = options.lineHeight ?? size * 0.46;
+    pdf.setFont("helvetica", options.bold ? "bold" : "normal");
+    pdf.setFontSize(size);
+    pdf.setTextColor(...(options.color ?? [23, 32, 51]));
+    const lines = pdf.splitTextToSize(reportText(text), width) as string[];
+    ensureSpace(lines.length * lineHeight + 2);
+    pdf.text(lines, x, y);
+    y += lines.length * lineHeight + 2;
+  };
 
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 10;
-    const printableWidth = pageWidth - margin * 2;
-    const printableHeight = pageHeight - margin * 2;
-    const totalHeight = (canvas.height * printableWidth) / canvas.width;
+  const sectionTitle = (title: string) => {
+    ensureSpace(14);
+    y += 5;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.setTextColor(26, 43, 107);
+    pdf.text(title.toUpperCase(), margin, y);
+    y += 3;
+    pdf.setDrawColor(215, 224, 240);
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 7;
+  };
 
-    if (totalHeight <= printableHeight) {
-      pdf.addImage(imgData, "JPEG", margin, margin, printableWidth, totalHeight);
-    } else {
-      const sliceHeightPx = (printableHeight * canvas.width) / printableWidth;
-      let yOffset = 0;
-      let pageIndex = 0;
-
-      while (yOffset < canvas.height) {
-        const sliceHeight = Math.min(sliceHeightPx, canvas.height - yOffset);
-        const pageCanvas = document.createElement("canvas");
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = Math.ceil(sliceHeight);
-        const ctx = pageCanvas.getContext("2d");
-        if (!ctx) break;
-
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, yOffset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-        const sliceImg = pageCanvas.toDataURL("image/jpeg", 0.95);
-        const sliceHeightMm = (sliceHeight * printableWidth) / canvas.width;
-
-        if (pageIndex > 0) pdf.addPage();
-        pdf.addImage(sliceImg, "JPEG", margin, margin, printableWidth, sliceHeightMm);
-        yOffset += sliceHeight;
-        pageIndex++;
-      }
+  const bulletList = (items: string[], emptyText: string, boxColor?: [number, number, number]) => {
+    const safeItems = items.filter(isUsefulReportText);
+    if (boxColor) {
+      ensureSpace(18);
+      const startY = y;
+      pdf.setFillColor(...boxColor);
+      pdf.roundedRect(margin, y - 4, contentWidth, 8, 2, 2, "F");
+      y = startY;
     }
 
-    pdf.save(fileName);
-  } finally {
-    container.remove();
+    if (safeItems.length === 0) {
+      writeWrapped(emptyText, margin + 4, contentWidth - 8, { size: 9, color: [103, 117, 146] });
+      return;
+    }
+
+    safeItems.forEach((item) => {
+      const lines = pdf.splitTextToSize(reportText(item), contentWidth - 8) as string[];
+      ensureSpace(lines.length * 4.3 + 3);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(21, 101, 192);
+      pdf.text("•", margin + 2, y);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(23, 32, 51);
+      pdf.text(lines, margin + 7, y);
+      y += lines.length * 4.3 + 2;
+    });
+  };
+
+  const keyValueRows = (rows: Array<[string, unknown]>) => {
+    rows.forEach(([label, value]) => {
+      const safeValue = reportText(value);
+      const valueLines = pdf.splitTextToSize(safeValue, contentWidth - 58) as string[];
+      const rowHeight = Math.max(10, valueLines.length * 4.4 + 5);
+      ensureSpace(rowHeight);
+      pdf.setDrawColor(215, 224, 240);
+      pdf.setFillColor(248, 250, 252);
+      pdf.rect(margin, y - 4, 48, rowHeight, "FD");
+      pdf.rect(margin + 48, y - 4, contentWidth - 48, rowHeight, "S");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(47, 67, 127);
+      pdf.text(pdf.splitTextToSize(label, 42) as string[], margin + 3, y);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(23, 32, 51);
+      pdf.text(valueLines, margin + 52, y);
+      y += rowHeight;
+    });
+    y += 3;
+  };
+
+  pdf.setFillColor(245, 248, 255);
+  pdf.rect(0, 0, pageWidth, 42, "F");
+  if (logoDataUrl) {
+    try {
+      pdf.addImage(logoDataUrl, "JPEG", margin, 12, 18, 18);
+    } catch {
+      pdf.setFillColor(26, 43, 107);
+      pdf.roundedRect(margin, 12, 18, 18, 3, 3, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("PX", margin + 4.2, 23.5);
+    }
   }
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(18);
+  pdf.setTextColor(26, 43, 107);
+  pdf.text("ProvexEvaluate", margin + 24, 19);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(8.5);
+  pdf.setTextColor(103, 117, 146);
+  pdf.text("Informe de analisis contractual - Lado proveedor", margin + 24, 26);
+  pdf.text(`Generado: ${reportDate}`, margin + 24, 32);
+  y = 52;
+
+  pdf.setFillColor(
+    analysis.decision.type === "firmar" ? 240 : analysis.decision.type === "no_recomendado_sin_validacion" ? 254 : 255,
+    analysis.decision.type === "firmar" ? 253 : analysis.decision.type === "no_recomendado_sin_validacion" ? 242 : 251,
+    analysis.decision.type === "firmar" ? 244 : analysis.decision.type === "no_recomendado_sin_validacion" ? 242 : 235
+  );
+  pdf.roundedRect(margin, y - 5, contentWidth, 38, 3, 3, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.setTextColor(26, 43, 107);
+  pdf.text(getDecisionLabel(analysis.decision.type), margin + 5, y + 3);
+  y += 10;
+  writeWrapped(analysis.decision.recommendation, margin + 5, contentWidth - 10, { size: 9.5 });
+  writeWrapped(`Valor minimo de viabilidad: ${reportText(analysis.decision.minimum_value_required)}`, margin + 5, contentWidth - 10, {
+    size: 8.5,
+    bold: true
+  });
+  y += 5;
+
+  sectionTitle("Indicadores ejecutivos");
+  keyValueRows([
+    ["Rentabilidad", `${analysis.analysis.profitability.val.toUpperCase()} - ${analysis.analysis.profitability.reason}`],
+    ["Riesgo", `${analysis.analysis.risk.val.toUpperCase()} - ${analysis.analysis.risk.reason}`],
+    ["Flujo de caja", `${analysis.analysis.cash_flow.val.toUpperCase()} - ${analysis.analysis.cash_flow.reason}`]
+  ]);
+
+  sectionTitle("Aspectos a mejorar");
+  bulletList(improvementItems, "No se identificaron mejoras criticas adicionales.", [255, 251, 235]);
+
+  sectionTitle("Condiciones para aprobar");
+  bulletList(analysis.decision.conditions, "Sin condiciones adicionales reportadas.");
+
+  sectionTitle("Datos extraidos del acuerdo");
+  keyValueRows([
+    ["Contrato", contractFileName],
+    ["Orden de compra", purchaseOrderFileName],
+    ["Partes", formatReportParties(analysis.data.parties)],
+    ["Valor", `${analysis.data.value} ${analysis.data.currency}`],
+    ["TRM", analysis.data.trm],
+    ["Duracion", analysis.data.duration],
+    ["Condiciones de pago", analysis.data.payment_terms],
+    ["Polizas", analysis.data.policies],
+    ["Penalidades", analysis.data.penalties],
+    ["Terminacion", analysis.data.termination],
+    ["Costo estimado", estimatedCost],
+    ["Margen esperado", expectedMargin]
+  ]);
+
+  sectionTitle("Alertas de riesgo");
+  bulletList(analysis.issues, "No se reportaron alertas relevantes.", [254, 242, 242]);
+
+  sectionTitle("Facturacion y flujo de caja");
+  keyValueRows([
+    ["Dias de pago", analysis.billing_conditions.payment_days],
+    ["Requisitos", analysis.billing_conditions.requirements],
+    ["Restricciones", analysis.billing_conditions.constraints],
+    ["Impacto en flujo", analysis.billing_conditions.cash_flow_impact]
+  ]);
+
+  sectionTitle("Polizas y garantias");
+  writeWrapped(`Estado: ${reportText(analysis.policies_analysis.required_status)}`, margin, contentWidth, { size: 9, bold: true });
+  writeWrapped(`Conclusion: ${reportText(analysis.policies_analysis.policy_conclusion.summary)}`, margin, contentWidth, { size: 9 });
+  bulletList(
+    [
+      `Alta probabilidad: ${analysis.policies_analysis.policy_conclusion.most_likely_required.join(", ")}`,
+      `Probable: ${analysis.policies_analysis.policy_conclusion.likely_required.join(", ")}`,
+      `Opcional: ${analysis.policies_analysis.policy_conclusion.optional.join(", ")}`,
+      `Nota: ${analysis.policies_analysis.policy_conclusion.final_note}`
+    ],
+    "No hay conclusion de polizas."
+  );
+  keyValueRows([
+    ["Exigidas por contrato", requiredPolicies.map((policy) => `${policy.name}: ${policy.value_details}`).join("; ")],
+    ["Sugeridas por analisis", suggestedPolicies.map((policy) => `${policy.name}: ${policy.estimated_cost}`).join("; ")],
+    ["Impacto en costos", analysis.policies_analysis.business_impact.cost_impact],
+    ["Impacto en rentabilidad", analysis.policies_analysis.business_impact.profitability_impact],
+    ["Esfuerzo de gestion", analysis.policies_analysis.business_impact.management_effort]
+  ]);
+
+  sectionTitle("Clausulas criticas");
+  bulletList(
+    highClauses.map((clause) => `${clause.clause}: ${clause.financial_impact || clause.risk_impact}`),
+    "No se reportaron clausulas de severidad alta."
+  );
+
+  const pageCount = pdf.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page++) {
+    pdf.setPage(page);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(103, 117, 146);
+    pdf.text(
+      "Este informe apoya la decision comercial y debe validarse con gerencia, juridica y cliente antes de firmar.",
+      margin,
+      pageHeight - 10
+    );
+    pdf.text(`Pagina ${page} de ${pageCount}`, pageWidth - margin - 24, pageHeight - 10);
+  }
+
+  pdf.save(fileName);
 }
 
 
@@ -1116,19 +1307,21 @@ export default function Home() {
     }
 
     const logoDataUrl = await fetchLogoAsDataUrl();
-    const html = buildContractReportHtml({
-      analysis,
-      contractFileName: file?.name,
-      purchaseOrderFileName: purchaseOrderFile?.name,
-      estimatedCost: estimatedCost.trim() || undefined,
-      expectedMargin: expectedMargin.trim() || undefined,
-      logoDataUrl
-    });
     const today = new Date().toISOString().slice(0, 10);
     const baseName = safeReportFileName(file?.name || "contrato");
 
     try {
-      await downloadReportAsPdf(html, `informe-${baseName}-${today}.pdf`);
+      await downloadReportAsPdf(
+        {
+          analysis,
+          contractFileName: file?.name,
+          purchaseOrderFileName: purchaseOrderFile?.name,
+          estimatedCost: estimatedCost.trim() || undefined,
+          expectedMargin: expectedMargin.trim() || undefined,
+          logoDataUrl
+        },
+        `informe-${baseName}-${today}.pdf`
+      );
     } catch (error) {
       console.error("No se pudo generar el PDF del informe", error);
       window.alert("No se pudo generar el PDF del informe. Intentalo de nuevo.");
