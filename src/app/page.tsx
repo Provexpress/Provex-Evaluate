@@ -17,6 +17,7 @@ type ReportBuildInput = {
   purchaseOrderFileName?: string;
   estimatedCost?: string;
   expectedMargin?: string;
+  logoDataUrl?: string;
 };
 
 const EMPTY_REPORT_VALUES = new Set([
@@ -172,7 +173,8 @@ function buildContractReportHtml({
   contractFileName,
   purchaseOrderFileName,
   estimatedCost,
-  expectedMargin
+  expectedMargin,
+  logoDataUrl
 }: ReportBuildInput): string {
   const reportDate = new Date().toLocaleString("es-CO", {
     dateStyle: "medium",
@@ -202,14 +204,12 @@ function buildContractReportHtml({
   <meta charset="utf-8" />
   <title>Informe de Análisis Contractual</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
     .px-pdf-report {
       margin: 0;
-      padding: 40px;
+      padding: 32px;
       color: #1e293b;
-      background: #f8fafc;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
     }
@@ -599,10 +599,10 @@ function buildContractReportHtml({
       <!-- Brand header with logo -->
       <div class="report-header">
         <div class="header-logo-container">
-          <img src="/provex-logo.jpeg" class="header-logo" alt="Provex Logo" />
+          ${logoDataUrl ? `<img src="${logoDataUrl}" class="header-logo" alt="Provex Logo" />` : `<div style="width:52px;height:52px;border-radius:10px;background:#1e1b4b;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-weight:700;font-size:18px;">P</span></div>`}
           <div>
             <h1 class="header-brand-title">ProvexEvaluate</h1>
-            <p class="header-brand-subtitle">Panel de Decisión Comercial - Lado Proveedor</p>
+            <p class="header-brand-subtitle">Panel de Decisión Comercial — Lado Proveedor</p>
           </div>
         </div>
         <div class="header-meta">
@@ -792,63 +792,74 @@ function renderReportOffscreen(html: string): HTMLDivElement {
   return container;
 }
 
+async function fetchLogoAsDataUrl(): Promise<string | undefined> {
+  try {
+    const res = await fetch("/provex-logo.jpeg");
+    if (!res.ok) return undefined;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+}
+
 async function downloadReportAsPdf(html: string, fileName: string): Promise<void> {
   const container = renderReportOffscreen(html);
 
+  // Allow a tick so the browser lays out the offscreen DOM
+  await new Promise((r) => setTimeout(r, 80));
+
   try {
     const canvas = await html2canvas(container, {
-      scale: 2,
+      scale: 2.5,
       backgroundColor: "#ffffff",
       useCORS: true,
-      logging: false
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 8000
     });
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 8;
+    const margin = 10;
     const printableWidth = pageWidth - margin * 2;
+    const printableHeight = pageHeight - margin * 2;
     const totalHeight = (canvas.height * printableWidth) / canvas.width;
 
-    if (totalHeight <= pageHeight - margin * 2) {
-      pdf.addImage(imgData, "PNG", margin, margin, printableWidth, totalHeight);
+    if (totalHeight <= printableHeight) {
+      pdf.addImage(imgData, "JPEG", margin, margin, printableWidth, totalHeight);
     } else {
-      const sliceHeightPx = ((pageHeight - margin * 2) * canvas.width) / printableWidth;
+      const sliceHeightPx = (printableHeight * canvas.width) / printableWidth;
       let yOffset = 0;
+      let pageIndex = 0;
 
       while (yOffset < canvas.height) {
         const sliceHeight = Math.min(sliceHeightPx, canvas.height - yOffset);
         const pageCanvas = document.createElement("canvas");
         pageCanvas.width = canvas.width;
-        pageCanvas.height = sliceHeight;
+        pageCanvas.height = Math.ceil(sliceHeight);
         const ctx = pageCanvas.getContext("2d");
-        if (!ctx) {
-          break;
-        }
+        if (!ctx) break;
+
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(
-          canvas,
-          0,
-          yOffset,
-          canvas.width,
-          sliceHeight,
-          0,
-          0,
-          canvas.width,
-          sliceHeight
-        );
+        ctx.drawImage(canvas, 0, yOffset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
 
-        const sliceImg = pageCanvas.toDataURL("image/png");
+        const sliceImg = pageCanvas.toDataURL("image/jpeg", 0.95);
         const sliceHeightMm = (sliceHeight * printableWidth) / canvas.width;
 
-        if (yOffset > 0) {
-          pdf.addPage();
-        }
-        pdf.addImage(sliceImg, "PNG", margin, margin, printableWidth, sliceHeightMm);
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(sliceImg, "JPEG", margin, margin, printableWidth, sliceHeightMm);
         yOffset += sliceHeight;
+        pageIndex++;
       }
     }
 
@@ -1104,12 +1115,14 @@ export default function Home() {
       return;
     }
 
+    const logoDataUrl = await fetchLogoAsDataUrl();
     const html = buildContractReportHtml({
       analysis,
       contractFileName: file?.name,
       purchaseOrderFileName: purchaseOrderFile?.name,
       estimatedCost: estimatedCost.trim() || undefined,
-      expectedMargin: expectedMargin.trim() || undefined
+      expectedMargin: expectedMargin.trim() || undefined,
+      logoDataUrl
     });
     const today = new Date().toISOString().slice(0, 10);
     const baseName = safeReportFileName(file?.name || "contrato");
