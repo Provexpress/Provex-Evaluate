@@ -204,7 +204,7 @@ function buildContractReportHtml({
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
-    body {
+    .px-pdf-report {
       margin: 0;
       padding: 40px;
       color: #1e293b;
@@ -214,7 +214,7 @@ function buildContractReportHtml({
       -webkit-font-smoothing: antialiased;
     }
     
-    main {
+    .px-pdf-report-main {
       max-width: 980px;
       margin: 0 auto;
       background: #ffffff;
@@ -225,7 +225,7 @@ function buildContractReportHtml({
     }
     
     /* Header branding */
-    .report-header {
+    .px-pdf-report .report-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -234,13 +234,13 @@ function buildContractReportHtml({
       margin-bottom: 32px;
     }
     
-    .header-logo-container {
+    .px-pdf-report .header-logo-container {
       display: flex;
       align-items: center;
       gap: 16px;
     }
     
-    .header-logo {
+    .px-pdf-report .header-logo {
       height: 52px;
       width: 52px;
       border-radius: 10px;
@@ -248,7 +248,7 @@ function buildContractReportHtml({
       border: 1px solid #e2e8f0;
     }
     
-    .header-brand-title {
+    .px-pdf-report .header-brand-title {
       font-size: 24px;
       font-weight: 700;
       color: #1e1b4b;
@@ -256,14 +256,14 @@ function buildContractReportHtml({
       letter-spacing: -0.02em;
     }
     
-    .header-brand-subtitle {
+    .px-pdf-report .header-brand-subtitle {
       font-size: 13px;
       color: #64748b;
       margin: 2px 0 0 0;
       font-weight: 500;
     }
     
-    .header-meta {
+    .px-pdf-report .header-meta {
       text-align: right;
       font-size: 12px;
       color: #64748b;
@@ -271,11 +271,11 @@ function buildContractReportHtml({
     }
     
     /* Section headers */
-    section {
+    .px-pdf-report-main section {
       margin-bottom: 36px;
     }
     
-    h2 {
+    .px-pdf-report h2 {
       font-size: 16px;
       font-weight: 700;
       color: #1e1b4b;
@@ -286,7 +286,7 @@ function buildContractReportHtml({
       letter-spacing: 0.06em;
     }
     
-    h3 {
+    .px-pdf-report h3 {
       font-size: 13px;
       font-weight: 700;
       color: #312e81;
@@ -296,32 +296,32 @@ function buildContractReportHtml({
     }
     
     /* Decision Hero Card */
-    .hero {
+    .px-pdf-report .hero {
       padding: 24px;
       border-radius: 12px;
       margin-bottom: 32px;
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
     }
     
-    .hero.sign {
+    .px-pdf-report .hero.sign {
       background: #f0fdf4;
       border-left: 6px solid #16a34a;
       color: #14532d;
     }
     
-    .hero.conditional {
+    .px-pdf-report .hero.conditional {
       background: #fffbeb;
       border-left: 6px solid #d97706;
       color: #78350f;
     }
     
-    .hero.do_not_sign {
+    .px-pdf-report .hero.do_not_sign {
       background: #fef2f2;
       border-left: 6px solid #dc2626;
       color: #7f1d1d;
     }
     
-    .hero-title {
+    .px-pdf-report .hero-title {
       font-size: 18px;
       font-weight: 700;
       margin: 0 0 8px 0;
@@ -330,32 +330,32 @@ function buildContractReportHtml({
       gap: 8px;
     }
     
-    .hero-rec {
+    .px-pdf-report .hero-rec {
       font-size: 14px;
       font-weight: 500;
       margin: 0 0 12px 0;
       line-height: 1.5;
     }
     
-    .hero-val {
+    .px-pdf-report .hero-val {
       font-size: 13px;
       font-weight: 700;
       margin: 0;
     }
     
-    .hero-val span {
+    .px-pdf-report .hero-val span {
       font-weight: 500;
     }
     
     /* Metric Indicators */
-    .grid {
+    .px-pdf-report .grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       margin-top: 16px;
     }
     
-    .metric {
+    .px-pdf-report .metric {
       padding: 18px;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
@@ -363,7 +363,7 @@ function buildContractReportHtml({
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.01);
     }
     
-    .metric-label {
+    .px-pdf-report .metric-label {
       display: block;
       color: #64748b;
       font-size: 10px;
@@ -373,7 +373,7 @@ function buildContractReportHtml({
       margin-bottom: 8px;
     }
     
-    .metric-val {
+    .px-pdf-report .metric-val {
       display: inline-block;
       padding: 3px 9px;
       border-radius: 6px;
@@ -384,22 +384,22 @@ function buildContractReportHtml({
       letter-spacing: 0.02em;
     }
     
-    .badge-high, .badge-bajo, .badge-fuerte {
+    .px-pdf-report .badge-high, .px-pdf-report .badge-bajo, .px-pdf-report .badge-fuerte {
       background: #dcfce7;
       color: #166534;
     }
     
-    .badge-medium, .badge-medio, .badge-estable {
+    .px-pdf-report .badge-medium, .px-pdf-report .badge-medio, .px-pdf-report .badge-estable {
       background: #fef3c7;
       color: #92400e;
     }
     
-    .badge-low, .badge-alto, .badge-debil {
+    .px-pdf-report .badge-low, .px-pdf-report .badge-alto, .px-pdf-report .badge-debil {
       background: #fee2e2;
       color: #991b1b;
     }
     
-    .metric-desc {
+    .px-pdf-report .metric-desc {
       font-size: 12px;
       color: #475569;
       margin: 0;
@@ -407,22 +407,22 @@ function buildContractReportHtml({
     }
     
     /* Container styling for lists */
-    ul {
+    .px-pdf-report ul {
       margin: 0;
       padding-left: 20px;
     }
     
-    li {
+    .px-pdf-report li {
       margin-bottom: 8px;
       font-size: 13px;
       color: #334155;
     }
     
-    li:last-child {
+    .px-pdf-report li:last-child {
       margin-bottom: 0;
     }
     
-    .warning-box {
+    .px-pdf-report .warning-box {
       padding: 20px;
       border: 1px solid #fef08a;
       border-radius: 12px;
@@ -430,22 +430,22 @@ function buildContractReportHtml({
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
     }
     
-    .warning-box li {
+    .px-pdf-report .warning-box li {
       color: #713f12;
     }
     
-    .danger-box {
+    .px-pdf-report .danger-box {
       padding: 20px;
       border: 1px solid #fecaca;
       border-radius: 12px;
       background: #fef2f2;
     }
     
-    .danger-box li {
+    .px-pdf-report .danger-box li {
       color: #7f1d1d;
     }
     
-    .info-box {
+    .px-pdf-report .info-box {
       padding: 20px;
       border: 1px solid #cbd5e1;
       border-radius: 12px;
@@ -453,7 +453,7 @@ function buildContractReportHtml({
     }
     
     /* Tables */
-    table {
+    .px-pdf-report table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 14px;
@@ -463,31 +463,31 @@ function buildContractReportHtml({
       border: 1px solid #e2e8f0;
     }
     
-    th, td {
+    .px-pdf-report th, .px-pdf-report td {
       padding: 12px 16px;
       border: 1px solid #e2e8f0;
       text-align: left;
       vertical-align: middle;
     }
     
-    th {
+    .px-pdf-report th {
       width: 220px;
       color: #1e1b4b;
       background: #f8fafc;
       font-weight: 600;
     }
     
-    td {
+    .px-pdf-report td {
       color: #334155;
       line-height: 1.5;
     }
     
-    tr:nth-child(even) td {
+    .px-pdf-report tr:nth-child(even) td {
       background: #fafafa;
     }
     
     /* Policy Conclusion Panel */
-    .policy-conclusion-card {
+    .px-pdf-report .policy-conclusion-card {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 12px;
@@ -496,7 +496,7 @@ function buildContractReportHtml({
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
     }
     
-    .conclusion-title {
+    .px-pdf-report .conclusion-title {
       font-size: 13px;
       font-weight: 700;
       color: #dc2626;
@@ -505,7 +505,7 @@ function buildContractReportHtml({
       letter-spacing: 0.04em;
     }
     
-    .conclusion-summary {
+    .px-pdf-report .conclusion-summary {
       font-size: 13px;
       color: #334155;
       font-weight: 500;
@@ -513,7 +513,7 @@ function buildContractReportHtml({
       line-height: 1.5;
     }
     
-    .conclusion-row {
+    .px-pdf-report .conclusion-row {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -521,7 +521,7 @@ function buildContractReportHtml({
       font-size: 12px;
     }
     
-    .conclusion-badge {
+    .px-pdf-report .conclusion-badge {
       font-weight: 700;
       padding: 3px 10px;
       border-radius: 12px;
@@ -533,30 +533,30 @@ function buildContractReportHtml({
       letter-spacing: 0.02em;
     }
     
-    .badge-prob-high {
+    .px-pdf-report .badge-prob-high {
       background: #fee2e2;
       color: #dc2626;
       border: 1px solid rgba(220, 38, 38, 0.15);
     }
     
-    .badge-prob-medium {
+    .px-pdf-report .badge-prob-medium {
       background: #dbeafe;
       color: #1d4ed8;
       border: 1px solid rgba(29, 78, 216, 0.15);
     }
     
-    .badge-prob-low {
+    .px-pdf-report .badge-prob-low {
       background: #f1f5f9;
       color: #475569;
       border: 1px solid rgba(71, 85, 105, 0.15);
     }
     
-    .conclusion-value {
+    .px-pdf-report .conclusion-value {
       font-weight: 600;
       color: #0f172a;
     }
     
-    .conclusion-note {
+    .px-pdf-report .conclusion-note {
       border-top: 1px dashed #cbd5e1;
       padding-top: 12px;
       margin-top: 14px;
@@ -565,19 +565,19 @@ function buildContractReportHtml({
       color: #dc2626;
     }
     
-    .conclusion-note span {
+    .px-pdf-report .conclusion-note span {
       color: #334155;
       font-style: italic;
       font-weight: 500;
     }
     
-    .muted {
+    .px-pdf-report .muted {
       color: #64748b;
       font-style: italic;
       font-size: 13px;
     }
     
-    .small {
+    .px-pdf-report .small {
       color: #64748b;
       font-size: 11px;
       text-align: center;
@@ -588,190 +588,192 @@ function buildContractReportHtml({
     }
     
     @media print {
-      body { background: #ffffff; padding: 0; }
-      main { box-shadow: none; border: none; padding: 0; }
+      .px-pdf-report { background: #ffffff; padding: 0; }
+      .px-pdf-report-main { box-shadow: none; border: none; padding: 0; }
     }
   </style>
 </head>
 <body>
-  <main>
-    <!-- Brand header with logo -->
-    <div class="report-header">
-      <div class="header-logo-container">
-        <img src="/provex-logo.jpeg" class="header-logo" alt="Provex Logo" />
-        <div>
-          <h1 class="header-brand-title">ProvexEvaluate</h1>
-          <p class="header-brand-subtitle">Panel de Decisión Comercial - Lado Proveedor</p>
+  <div class="px-pdf-report">
+    <div class="px-pdf-report-main">
+      <!-- Brand header with logo -->
+      <div class="report-header">
+        <div class="header-logo-container">
+          <img src="/provex-logo.jpeg" class="header-logo" alt="Provex Logo" />
+          <div>
+            <h1 class="header-brand-title">ProvexEvaluate</h1>
+            <p class="header-brand-subtitle">Panel de Decisión Comercial - Lado Proveedor</p>
+          </div>
+        </div>
+        <div class="header-meta">
+          <p style="margin: 0; font-weight: 700; color: #1e1b4b; font-size: 13px;">Informe de Análisis Contractual</p>
+          <p style="margin: 3px 0 0 0;">Generado el ${escapeHtml(reportDate)}</p>
+          <p style="margin: 3px 0 0 0; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <strong>Contrato:</strong> ${reportValue(contractFileName)}
+          </p>
+          ${purchaseOrderFileName ? `<p style="margin: 3px 0 0 0; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>Orden de compra:</strong> ${escapeHtml(purchaseOrderFileName)}</p>` : ""}
         </div>
       </div>
-      <div class="header-meta">
-        <p style="margin: 0; font-weight: 700; color: #1e1b4b; font-size: 13px;">Informe de Análisis Contractual</p>
-        <p style="margin: 3px 0 0 0;">Generado el ${escapeHtml(reportDate)}</p>
-        <p style="margin: 3px 0 0 0; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-          <strong>Contrato:</strong> ${reportValue(contractFileName)}
-        </p>
-        ${purchaseOrderFileName ? `<p style="margin: 3px 0 0 0; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>Orden de compra:</strong> ${escapeHtml(purchaseOrderFileName)}</p>` : ""}
-      </div>
+
+      <!-- Recommendation -->
+      <section class="hero ${decisionClass}">
+        <div class="hero-title">
+          <span>🛡️</span>
+          <span>${escapeHtml(getDecisionLabel(analysis.decision.type))}</span>
+        </div>
+        <p class="hero-rec">${reportValue(analysis.decision.recommendation)}</p>
+        <p class="hero-val">Valor mínimo de viabilidad: <span>${reportValue(analysis.decision.minimum_value_required)}</span></p>
+      </section>
+
+      <!-- Executive indicators -->
+      <section>
+        <h2>Indicadores Ejecutivos</h2>
+        <div class="grid">
+          <div class="metric">
+            <span class="metric-label">Rentabilidad</span>
+            <span class="metric-val ${getMetricBadgeClass(analysis.analysis.profitability.val)}">${escapeHtml(analysis.analysis.profitability.val)}</span>
+            <p class="metric-desc">${reportValue(analysis.analysis.profitability.reason)}</p>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Riesgo</span>
+            <span class="metric-val ${getMetricBadgeClass(analysis.analysis.risk.val)}">${escapeHtml(analysis.analysis.risk.val)}</span>
+            <p class="metric-desc">${reportValue(analysis.analysis.risk.reason)}</p>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Flujo de caja</span>
+            <span class="metric-val ${getMetricBadgeClass(analysis.analysis.cash_flow.val)}">${escapeHtml(analysis.analysis.cash_flow.val)}</span>
+            <p class="metric-desc">${reportValue(analysis.analysis.cash_flow.reason)}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Aspects to improve -->
+      <section>
+        <h2>Aspectos a Mejorar</h2>
+        <div class="warning-box">
+          ${renderReportList(improvementItems, "No se identificaron mejoras críticas adicionales.")}
+        </div>
+      </section>
+
+      <!-- Conditions to sign -->
+      <section>
+        <h2>Condiciones para Aprobar</h2>
+        <div class="info-box">
+          ${renderReportList(analysis.decision.conditions, "Sin condiciones adicionales reportadas.")}
+        </div>
+      </section>
+
+      <!-- Extracted details -->
+      <section>
+        <h2>Datos Extraídos del Acuerdo</h2>
+        <table>
+          <tbody>
+            ${renderReportRows([
+              ["Partes Contratantes", formatReportParties(analysis.data.parties)],
+              ["Valor Contractual", `${analysis.data.value} ${analysis.data.currency}`],
+              ["TRM Aplicable", analysis.data.trm],
+              ["Duración / Vigencia", analysis.data.duration],
+              ["Condiciones de Pago", analysis.data.payment_terms],
+              ["Pólizas y Garantías", analysis.data.policies],
+              ["Penalidades / Multas", analysis.data.penalties],
+              ["Cláusulas de Terminación", analysis.data.termination],
+              ["Costo Estimado Negocio", estimatedCost],
+              ["Margen Comercial Esperado", expectedMargin]
+            ])}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Risk Alerts -->
+      <section>
+        <h2>Alertas de Riesgo</h2>
+        <div class="danger-box">
+          ${renderReportList(analysis.issues, "No se reportaron alertas relevantes.")}
+        </div>
+      </section>
+
+      <!-- Billing conditions -->
+      <section>
+        <h2>Facturación y Flujo de Caja</h2>
+        <table>
+          <tbody>
+            ${renderReportRows([
+              ["Días de Pago", analysis.billing_conditions.payment_days],
+              ["Requisitos de Facturación", analysis.billing_conditions.requirements],
+              ["Restricciones Financieras", analysis.billing_conditions.constraints],
+              ["Impacto Estimado en Flujo", analysis.billing_conditions.cash_flow_impact]
+            ])}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Policies analysis -->
+      <section>
+        <h2>Pólizas y Garantías</h2>
+        <p style="margin: 0 0 12px 0; font-size: 14px;"><strong>Estado del Contrato:</strong> ${reportValue(analysis.policies_analysis.required_status)}</p>
+        
+        <!-- Pólizas Conclusion Card -->
+        <div class="policy-conclusion-card">
+          <h4 class="conclusion-title">🔴 CONCLUSIÓN DE PÓLIZAS (CRÍTICO)</h4>
+          <p class="conclusion-summary">👉 ${reportValue(analysis.policies_analysis.policy_conclusion.summary)}</p>
+          
+          ${analysis.policies_analysis.policy_conclusion.most_likely_required?.length > 0 ? `
+            <div class="conclusion-row">
+              <span class="conclusion-badge badge-prob-high">1. Alta Probabilidad</span>
+              <span class="conclusion-value">${escapeHtml(analysis.policies_analysis.policy_conclusion.most_likely_required.join(", "))}</span>
+            </div>
+          ` : ""}
+          
+          ${analysis.policies_analysis.policy_conclusion.likely_required?.length > 0 ? `
+            <div class="conclusion-row">
+              <span class="conclusion-badge badge-prob-medium">2. Probable</span>
+              <span class="conclusion-value">${escapeHtml(analysis.policies_analysis.policy_conclusion.likely_required.join(", "))}</span>
+            </div>
+          ` : ""}
+          
+          ${analysis.policies_analysis.policy_conclusion.optional?.length > 0 ? `
+            <div class="conclusion-row">
+              <span class="conclusion-badge badge-prob-low">3. Opcional</span>
+              <span class="conclusion-value">${escapeHtml(analysis.policies_analysis.policy_conclusion.optional.join(", "))}</span>
+            </div>
+          ` : ""}
+          
+          <div class="conclusion-note">
+            ⚠️ Nota importante: <span>"${escapeHtml(analysis.policies_analysis.policy_conclusion.final_note || "Debe confirmarse con cliente antes de firma")}"</span>
+          </div>
+        </div>
+
+        <h3>Exigidas por Contrato</h3>
+        ${renderReportList(requiredPolicies.map((policy) => `${policy.name}: ${policy.value_details}`), "No se identificaron pólizas exigidas por nombre o tipo.")}
+        
+        <h3>Sugeridas por Análisis</h3>
+        ${renderReportList(suggestedPolicies.map((policy) => `${policy.name}: ${policy.estimated_cost}`), "No se identificaron pólizas sugeridas adicionales.")}
+        
+        <table>
+          <tbody>
+            ${renderReportRows([
+              ["Impacto en Costos", analysis.policies_analysis.business_impact.cost_impact],
+              ["Impacto en Rentabilidad", analysis.policies_analysis.business_impact.profitability_impact],
+              ["Esfuerzo de Gestión", analysis.policies_analysis.business_impact.management_effort]
+            ])}
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Critical Clauses -->
+      <section>
+        <h2>Cláusulas Críticas</h2>
+        <div class="info-box">
+          ${renderReportList(
+            highClauses.map((clause) => `${clause.clause}: ${clause.financial_impact || clause.risk_impact}`),
+            "No se reportaron cláusulas de severidad alta."
+          )}
+        </div>
+      </section>
+
+      <p class="small">Este informe es una herramienta de apoyo a la decisión comercial. Debe validarse con gerencia, jurídica y el cliente antes de firmar.</p>
     </div>
-
-    <!-- Recommendation -->
-    <section class="hero ${decisionClass}">
-      <div class="hero-title">
-        <span>🛡️</span>
-        <span>${escapeHtml(getDecisionLabel(analysis.decision.type))}</span>
-      </div>
-      <p class="hero-rec">${reportValue(analysis.decision.recommendation)}</p>
-      <p class="hero-val">Valor mínimo de viabilidad: <span>${reportValue(analysis.decision.minimum_value_required)}</span></p>
-    </section>
-
-    <!-- Executive indicators -->
-    <section>
-      <h2>Indicadores Ejecutivos</h2>
-      <div class="grid">
-        <div class="metric">
-          <span class="metric-label">Rentabilidad</span>
-          <span class="metric-val ${getMetricBadgeClass(analysis.analysis.profitability.val)}">${escapeHtml(analysis.analysis.profitability.val)}</span>
-          <p class="metric-desc">${reportValue(analysis.analysis.profitability.reason)}</p>
-        </div>
-        <div class="metric">
-          <span class="metric-label">Riesgo</span>
-          <span class="metric-val ${getMetricBadgeClass(analysis.analysis.risk.val)}">${escapeHtml(analysis.analysis.risk.val)}</span>
-          <p class="metric-desc">${reportValue(analysis.analysis.risk.reason)}</p>
-        </div>
-        <div class="metric">
-          <span class="metric-label">Flujo de caja</span>
-          <span class="metric-val ${getMetricBadgeClass(analysis.analysis.cash_flow.val)}">${escapeHtml(analysis.analysis.cash_flow.val)}</span>
-          <p class="metric-desc">${reportValue(analysis.analysis.cash_flow.reason)}</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Aspects to improve -->
-    <section>
-      <h2>Aspectos a Mejorar</h2>
-      <div class="warning-box">
-        ${renderReportList(improvementItems, "No se identificaron mejoras críticas adicionales.")}
-      </div>
-    </section>
-
-    <!-- Conditions to sign -->
-    <section>
-      <h2>Condiciones para Aprobar</h2>
-      <div class="info-box">
-        ${renderReportList(analysis.decision.conditions, "Sin condiciones adicionales reportadas.")}
-      </div>
-    </section>
-
-    <!-- Extracted details -->
-    <section>
-      <h2>Datos Extraídos del Acuerdo</h2>
-      <table>
-        <tbody>
-          ${renderReportRows([
-            ["Partes Contratantes", formatReportParties(analysis.data.parties)],
-            ["Valor Contractual", `${analysis.data.value} ${analysis.data.currency}`],
-            ["TRM Aplicable", analysis.data.trm],
-            ["Duración / Vigencia", analysis.data.duration],
-            ["Condiciones de Pago", analysis.data.payment_terms],
-            ["Pólizas y Garantías", analysis.data.policies],
-            ["Penalidades / Multas", analysis.data.penalties],
-            ["Cláusulas de Terminación", analysis.data.termination],
-            ["Costo Estimado Negocio", estimatedCost],
-            ["Margen Comercial Esperado", expectedMargin]
-          ])}
-        </tbody>
-      </table>
-    </section>
-
-    <!-- Risk Alerts -->
-    <section>
-      <h2>Alertas de Riesgo</h2>
-      <div class="danger-box">
-        ${renderReportList(analysis.issues, "No se reportaron alertas relevantes.")}
-      </div>
-    </section>
-
-    <!-- Billing conditions -->
-    <section>
-      <h2>Facturación y Flujo de Caja</h2>
-      <table>
-        <tbody>
-          ${renderReportRows([
-            ["Días de Pago", analysis.billing_conditions.payment_days],
-            ["Requisitos de Facturación", analysis.billing_conditions.requirements],
-            ["Restricciones Financieras", analysis.billing_conditions.constraints],
-            ["Impacto Estimado en Flujo", analysis.billing_conditions.cash_flow_impact]
-          ])}
-        </tbody>
-      </table>
-    </section>
-
-    <!-- Policies analysis -->
-    <section>
-      <h2>Pólizas y Garantías</h2>
-      <p style="margin: 0 0 12px 0; font-size: 14px;"><strong>Estado del Contrato:</strong> ${reportValue(analysis.policies_analysis.required_status)}</p>
-      
-      <!-- Pólizas Conclusion Card -->
-      <div class="policy-conclusion-card">
-        <h4 class="conclusion-title">🔴 CONCLUSIÓN DE PÓLIZAS (CRÍTICO)</h4>
-        <p class="conclusion-summary">👉 ${reportValue(analysis.policies_analysis.policy_conclusion.summary)}</p>
-        
-        ${analysis.policies_analysis.policy_conclusion.most_likely_required?.length > 0 ? `
-          <div class="conclusion-row">
-            <span class="conclusion-badge badge-prob-high">1. Alta Probabilidad</span>
-            <span class="conclusion-value">${escapeHtml(analysis.policies_analysis.policy_conclusion.most_likely_required.join(", "))}</span>
-          </div>
-        ` : ""}
-        
-        ${analysis.policies_analysis.policy_conclusion.likely_required?.length > 0 ? `
-          <div class="conclusion-row">
-            <span class="conclusion-badge badge-prob-medium">2. Probable</span>
-            <span class="conclusion-value">${escapeHtml(analysis.policies_analysis.policy_conclusion.likely_required.join(", "))}</span>
-          </div>
-        ` : ""}
-        
-        ${analysis.policies_analysis.policy_conclusion.optional?.length > 0 ? `
-          <div class="conclusion-row">
-            <span class="conclusion-badge badge-prob-low">3. Opcional</span>
-            <span class="conclusion-value">${escapeHtml(analysis.policies_analysis.policy_conclusion.optional.join(", "))}</span>
-          </div>
-        ` : ""}
-        
-        <div class="conclusion-note">
-          ⚠️ Nota importante: <span>"${escapeHtml(analysis.policies_analysis.policy_conclusion.final_note || "Debe confirmarse con cliente antes de firma")}"</span>
-        </div>
-      </div>
-
-      <h3>Exigidas por Contrato</h3>
-      ${renderReportList(requiredPolicies.map((policy) => `${policy.name}: ${policy.value_details}`), "No se identificaron pólizas exigidas por nombre o tipo.")}
-      
-      <h3>Sugeridas por Análisis</h3>
-      ${renderReportList(suggestedPolicies.map((policy) => `${policy.name}: ${policy.estimated_cost}`), "No se identificaron pólizas sugeridas adicionales.")}
-      
-      <table>
-        <tbody>
-          ${renderReportRows([
-            ["Impacto en Costos", analysis.policies_analysis.business_impact.cost_impact],
-            ["Impacto en Rentabilidad", analysis.policies_analysis.business_impact.profitability_impact],
-            ["Esfuerzo de Gestión", analysis.policies_analysis.business_impact.management_effort]
-          ])}
-        </tbody>
-      </table>
-    </section>
-
-    <!-- Critical Clauses -->
-    <section>
-      <h2>Cláusulas Críticas</h2>
-      <div class="info-box">
-        ${renderReportList(
-          highClauses.map((clause) => `${clause.clause}: ${clause.financial_impact || clause.risk_impact}`),
-          "No se reportaron cláusulas de severidad alta."
-        )}
-      </div>
-    </section>
-
-    <p class="small">Este informe es una herramienta de apoyo a la decisión comercial. Debe validarse con gerencia, jurídica y el cliente antes de firmar.</p>
-  </main>
+  </div>
 </body>
 </html>`;
 }
